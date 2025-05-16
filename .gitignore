@@ -153,5 +153,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Data files
-data/
+# Wallets
+data/wallets.txt
+
+# Proxies
+data/proxies.txt
