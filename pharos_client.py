@@ -1,7 +1,50 @@
+from eth_account import Account
+from eth_account.messages import encode_defunct
+from data.const import pharosHeaders
+from utils.logger import logger
+from utils.file_manager import load_yaml
+from main import settings
+from actions.checkin import checkin
+import aiohttp
+import asyncio
+import random
 
 
+ATTEMPTS, SLEEP_BETWEEN_ACTIONS, SLEEP_AFTER_ERROR = settings['ATTEMPTS'], settings['SLEEP_BETWEEN_ACTIONS'], settings['SLEEP_AFTER_ERROR']
+
+class PharosClient:
+    def __init__(self, private_key, proxy):
+        self.wallet = Account.from_key(private_key)
+        self.proxy = proxy
+        self.session = aiohttp.ClientSession()
+        self.headers = pharosHeaders
 
 
-class PharosCLient:
-    def __init__(self):
-        pass
+    def _sign_message(self):
+        encoded_message = encode_defunct(text='pharos')
+        signature = self.wallet.sign_message(encoded_message)
+        return signature.signature.hex()
+
+
+    async def login(self):
+        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={self._sign_message()}'
+
+        for retry in range(ATTEMPTS):
+            try:
+                async with self.session.post(url=url, headers=self.headers, proxy=self.proxy) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.success(self.wallet.address, 'Successfully logged in')
+                        self.headers['authorization'] = f'Bearer {data['data']['jwt']}'
+                    else:
+                        random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                        logger.error(self.wallet.address, f'Error while logging in: {response.text()}. Retrying in {random_sleep} sec...')
+                        await asyncio.sleep(random_sleep)
+            except Exception as e:
+                logger.error(self.wallet.address, f'An error occurred: {e}')
+
+
+    async def check_in(self):
+        for retry in range(ATTEMPTS):
+            if await checkin(self.wallet.address, self.headers, self.proxy):
+                break

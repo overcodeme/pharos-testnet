@@ -1,4 +1,4 @@
-rpc = ''
+rpc = 'https://testnet.dplabs-internal.com'
 
 pharosHeaders = {
     'accept': 'application/json, text/plain, */*',

@@ -1,10 +1,11 @@
 from web3 import AsyncWeb3
 from eth_account import Account
+from data.const import rpc
+from utils.logger import logger
 
-
-w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(''))
 
 async def gotchipus_mint(private_key):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     wallet = Account.from_key(private_key)
 
     tx = {
@@ -17,3 +18,12 @@ async def gotchipus_mint(private_key):
     }
 
     tx['gas'] = w3.eth.estimate_gas(tx)
+
+    signed_tx = wallet.sign_transaction(tx)
+    tx_hash = await w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+    tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
+    if tx_receipt.status == 1:
+        logger.success(wallet.address, 'Successfully mited gotchipus NFT')
+    else:
+        logger.error(wallet.address, f'Error while minting gotchipus NFT: {tx_receipt}')
