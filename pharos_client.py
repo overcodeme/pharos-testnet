@@ -1,9 +1,10 @@
 from eth_account import Account
 from eth_account.messages import encode_defunct
-from data.const import pharosHeaders
+from data.const import pharosHeaders, stables_faucet_data
 from utils.logger import logger
 from main import settings
 from actions.checkin import checkin
+from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 import aiohttp
 import asyncio
 import random
@@ -53,7 +54,9 @@ class PharosClient:
                         data = await response.json()
                         return data
                     else:
-                        logger.error(self.wallet.address, f'Error while getting user data: {await response.text()}')
+                        random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                        logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
+                        await asyncio.sleep(random_sleep)
 
             except Exception as e:
                 logger.error(self.wallet.address, f'An error occurred: {e}')
@@ -61,6 +64,28 @@ class PharosClient:
 
     async def fetch_faucet(self):
         user_data = await self.get_user_data()
+        stables = stables_faucet_data
+        is_twitter_connected = True if user_data['data']['user_info']['XId'] else False
+        
+        for retry in range(ATTEMPTS):
+            try:
+                if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
+                    await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers)
+                    break
+            except Exception as e:
+                random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                logger.error(self.wallet.address, f'An error occurred: {e}. Retrying in {random_sleep} sec...')
+                await asyncio.sleep(random_sleep)
+
+        for stable in stables:
+            for retry in range(ATTEMPTS):
+                try:
+                    await fetch_stable_faucet(self.wallet.address, stable)
+                    break
+                except Exception as e:
+                    random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                    logger.error(self.wallet.address, f'An error occurred: {e}. Retrying in {random_sleep} sec...')
+                    await asyncio.sleep(random_sleep)
 
 
     async def check_in(self):
