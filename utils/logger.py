@@ -19,8 +19,13 @@ class Logger:
         self._log(wallet, message, "SUCCESS", Fore.GREEN)
 
 
+    def warning(self, wallet, message):
+        self._log(wallet, message, 'WARNING', Fore.YELLOW)
+
+
     def info(self, wallet, message):
         self._log(wallet, message)
+
 
 
 logger = Logger()

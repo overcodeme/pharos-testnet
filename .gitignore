@@ -158,3 +158,9 @@ data/wallets.txt
 
 # Proxies
 data/proxies.txt
+
+# Discord tokens
+data/discord_tokens.txt
+
+# Twitter tokens
+data/twitter_tokens.txt

@@ -2,7 +2,6 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from data.const import pharosHeaders
 from utils.logger import logger
-from utils.file_manager import load_yaml
 from main import settings
 from actions.checkin import checkin
 import aiohttp
@@ -15,15 +14,14 @@ ATTEMPTS, SLEEP_BETWEEN_ACTIONS, SLEEP_AFTER_ERROR = settings['ATTEMPTS'], setti
 class PharosClient:
     def __init__(self, private_key, proxy):
         self.wallet = Account.from_key(private_key)
-        self.proxy = proxy
-        self.session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession(proxy=proxy)
         self.headers = pharosHeaders
 
 
     def _sign_message(self):
         encoded_message = encode_defunct(text='pharos')
         signature = self.wallet.sign_message(encoded_message)
-        return signature.signature.hex()
+        return f'0x{signature.signature.hex()}'
 
 
     async def login(self):
@@ -31,11 +29,12 @@ class PharosClient:
 
         for retry in range(ATTEMPTS):
             try:
-                async with self.session.post(url=url, headers=self.headers, proxy=self.proxy) as response:
+                async with self.session.post(url=url, headers=self.headers) as response:
                     if response.status == 200:
                         data = await response.json()
                         logger.success(self.wallet.address, 'Successfully logged in')
                         self.headers['authorization'] = f'Bearer {data['data']['jwt']}'
+                        return
                     else:
                         random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
                         logger.error(self.wallet.address, f'Error while logging in: {response.text()}. Retrying in {random_sleep} sec...')
@@ -44,7 +43,28 @@ class PharosClient:
                 logger.error(self.wallet.address, f'An error occurred: {e}')
 
 
+    async def get_user_data(self):
+        url = f'https://api.pharosnetwork.xyz/user/profile?address={self.wallet.address}'
+
+        for retry in range(ATTEMPTS):
+            try:
+                async with self.session.get(url=url, headers=self.headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data
+                    else:
+                        logger.error(self.wallet.address, f'Error while getting user data: {await response.text()}')
+
+            except Exception as e:
+                logger.error(self.wallet.address, f'An error occurred: {e}')
+            
+
+    async def fetch_faucet(self):
+        user_data = await self.get_user_data()
+
+
     async def check_in(self):
         for retry in range(ATTEMPTS):
-            if await checkin(self.wallet.address, self.headers, self.proxy):
+            if await checkin(self.wallet.address, self.headers):
                 break
+                
