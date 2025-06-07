@@ -2,14 +2,16 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from data.const import pharos_headers, stables_faucet_data
 from utils.logger import logger
-from main import settings
+from utils.file_manager import load_yaml, load_txt
 from actions.checkin import checkin
 from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 import aiohttp
 import asyncio
 import random
 
-
+discords = load_txt('data/discord_tokens.txt')
+twitters = load_txt('data/twitter_tokens.txt')
+settings = load_yaml('settings.yaml')
 ATTEMPTS, SLEEP_BETWEEN_ACTIONS, SLEEP_AFTER_ERROR = settings['ATTEMPTS'], settings['SLEEP_BETWEEN_ACTIONS'], settings['SLEEP_AFTER_ERROR']
 
 class PharosClient:

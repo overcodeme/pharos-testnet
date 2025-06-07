@@ -2,9 +2,10 @@ import aiohttp
 import random
 import asyncio
 from utils.logger import logger
-from main import settings
+from utils.file_manager import load_yaml
 
 
+settings = load_yaml('./settings.yaml')
 SLEEP_AFTER_ERROR = settings['SLEEP_AFTER_ERROR']
 
 async def checkin(wallet_address, headers, proxy):
