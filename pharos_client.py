@@ -1,6 +1,6 @@
 from eth_account import Account
 from eth_account.messages import encode_defunct
-from data.const import pharosHeaders, stables_faucet_data
+from data.const import pharos_headers, stables_faucet_data
 from utils.logger import logger
 from main import settings
 from actions.checkin import checkin
@@ -16,7 +16,7 @@ class PharosClient:
     def __init__(self, private_key, proxy):
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy)
-        self.headers = pharosHeaders
+        self.headers = pharos_headers
 
 
     def _sign_message(self):
@@ -92,4 +92,12 @@ class PharosClient:
         for retry in range(ATTEMPTS):
             if await checkin(self.wallet.address, self.headers):
                 break
+
+
+    async def run_onchain(self):
+        pass
+
+
+    async def connect_socials(self):
+        pass
                 

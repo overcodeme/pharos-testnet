@@ -3,3 +3,4 @@ pyyaml==6.0.2
 colorama==0.4.6
 aiohttp==3.11.18
 anticaptchaofficial==1.0.66
+windows-curses==2.4.1
