@@ -7,6 +7,7 @@ from data.const import menu_items
 from pharos_client import PharosClient
 from utils.menu import menu
 from colorama import Fore, Style
+import os
 
 
 settings = load_yaml('settings.yaml')
@@ -14,13 +15,16 @@ wallets = load_txt('data/wallets.txt')
 proxies = load_txt('data/proxies.txt')
 
 async def handle_account(private_key, proxy, action_name):
-    pc = PharosClient(private_key, proxy)
+    pharos = PharosClient(private_key, proxy)
     wallet_address = Account.from_key(private_key).address
     try:
-        action_func = getattr(pc, action_name)
+        await pharos.login()
+        action_func = getattr(pharos, action_name)
         await action_func()
     except Exception as e:
         logger.error(wallet_address, f'An error occurred: {e}')
+    finally:
+        await pharos.close_session()
 
 
 async def main():
@@ -32,10 +36,11 @@ async def main():
 
     options = menu_items
     chosen_action = options[curses.wrapper(menu)]['func']
+    os.system('cls' if os.name == 'nt' else 'clear')
 
     tasks = []
     for w, p in zip(wallets, proxies):
-        tasks.append(await handle_account(w, p, chosen_action))
+        tasks.append(handle_account(w, p, chosen_action))
 
     await asyncio.gather(*tasks)
 

@@ -1,10 +1,10 @@
 from colorama import Fore, Style
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 class Logger:
     def _log(self, wallet, message, level=None, color=None):
-        time = datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')
+        time = datetime.now().strftime('%d.%m.%Y %H:%M:%S')
         if not level:
             print(f'{f'{Fore.BLUE}{time}{Style.RESET_ALL}'} | INFO | {wallet} | {message}')
         else:
