@@ -10,9 +10,9 @@ import time
 w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
 settings = load_yaml('settings.yaml')
 
-async def approve_token(wallet, amount, token: dict):
+async def approve_token(wallet, amount, spender, token: dict):
     contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
-    allowance_amount = (contract.functions.allowance(wallet.address, wallet.address).call()) / (10 ** token['decimals'])
+    allowance_amount = (contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
         tx = contract.functions.approve(wallet.address, amount).build_transaction({
@@ -39,13 +39,14 @@ async def get_token_balance(wallet_address, token: dict):
 
 
 async def get_tokens_with_balance(wallet_address) -> list:
-    tokens_data = [*stables_data, {'name': 'WPHRS', 'contract_address': WPHRS_address, 'decimals': 18}]
+    tokens_data = [*stables_data]
+    random.shuffle(tokens_data)
     result = []
 
     for token in tokens_data:
         balance = await get_token_balance(wallet_address, token)
         if balance > 0:
-            result.append({token['name']: balance})
+            result.append({'name': token['name'], 'balance': balance})
 
     return result
 
@@ -129,9 +130,27 @@ async def handle_random_swap(wallet):
         logger.error(wallet.address, f'Error while handling random swap function: {e}')
 
 
+async def handle_liquidity(wallet):
+    tokens_with_balance = await get_tokens_with_balance(wallet.address)
+    token0 = {'name': 'PHRS', 'decimals': 18, 'balance': await w3.eth.get_balance(wallet.address)}
+    token1 = tokens_with_balance[0]
+    if len (tokens_with_balance) < 1: 
+        await swap_from_native(wallet, random.choice(stables_data))
+    else:
+        try:
+            amount0 = random.randint(settings.TASKS.LIQUIDITY.AMOUNT[0], settings.TASKS.LIQUIDITY.AMOUNT[1]) / 100 * token0['balance']
+            amount1 = random.randint(settings.TASKS.LIQUIDITY.AMOUNT[0], settings.TASKS.LIQUIDITY.AMOUNT[1]) / 100 * token1['balance']
+            logger.info(wallet.address, f'Trying add liquidity {token0["name"]}/{token1['name']}')
+
+
+        except Exception as e:
+            logger.error(wallet.address, f'An error occurred while adding liquidity: {e}')
+
+
+
 async def send_to_friends(wallet):
     balance = w3.eth.get_balance(wallet.address)
-    amount = random.randint(settings.TASKS.SEND_TO_FRINDS.AMOUNT[0], settings.TASKS.SEND_TO_FRINDS.AMOUNT[1]) / 100 * balance
+    amount = random.randint(settings.TASKS.SEND_TO_FRIENDS.AMOUNT[0], settings.TASKS.SEND_TO_FRIENDS.AMOUNT[1]) / 100 * balance
 
     try:
         random_address = Account.create().address

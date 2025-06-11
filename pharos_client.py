@@ -19,9 +19,9 @@ ATTEMPTS, SLEEP_BETWEEN_ACTIONS, SLEEP_AFTER_ERROR = settings['ATTEMPTS'], setti
 tasks = settings['TASKS']
 tasks_functions = {
     'SWAP': handle_random_swap,
+    'LIQUIDITY': '',
     'SEND_TO_FRIENDS': send_to_friends,
 }
-
 
 
 class PharosClient:
@@ -122,7 +122,10 @@ class PharosClient:
         for task in all_tasks:
             for task_name, task_count in task.items():
                 for i in range(task_count):
-                    await tasks_functions[task_name]
+                    random_sleep = random.randint(SLEEP_BETWEEN_ACTIONS[0], SLEEP_BETWEEN_ACTIONS[1])
+                    await tasks_functions[task_name]()
+                    logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before next action...')
+                    await asyncio.sleep(random_sleep)
 
 
     async def connect_socials(self):
