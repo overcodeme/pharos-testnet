@@ -7,10 +7,10 @@ import random
 import time
 
 
-w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
 settings = load_yaml('settings.yaml')
 
 async def approve_token(wallet, amount, spender, token: dict):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
     allowance_amount = (contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
 
@@ -33,6 +33,7 @@ async def approve_token(wallet, amount, spender, token: dict):
 
 
 async def get_token_balance(wallet_address, token: dict):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
     balance = await contract.functiions.balanceOf(wallet_address).call()
     return balance / (10 ** token['decimals'])
@@ -52,6 +53,7 @@ async def get_tokens_with_balance(wallet_address) -> list:
 
 
 async def swap_from_native(wallet, token):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     contract = w3.eth.contract(address=router_address, abi=abi['zenith_abi'])
     try:
         balance = await w3.eth.get_balance(wallet.address)
@@ -76,10 +78,11 @@ async def swap_from_native(wallet, token):
             logger.error(wallet.address, f'Swap error: {tx_receipt}')
 
     except Exception as e:
-        logger.error(wallet.address, f'An error occurred: {e}')
+        logger.error(wallet.address, f'An error occurred while swapping from native: {e}')
 
 
 async def swap_from_stable(wallet, token1, token2):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     await approve_token(wallet, amount, token1)
     contract = w3.eth.contract(address=token1['contract_address'], abi=abi['zenith_abi'])
     try:
@@ -105,7 +108,7 @@ async def swap_from_stable(wallet, token1, token2):
             logger.error(wallet.address, f'Swap error: {tx_receipt}')
 
     except Exception as e:
-        logger.error(wallet.address, f'An error occurred: {e}')
+        logger.error(wallet.address, f'An error occurred while swapping from stable: {e}')
 
 
 async def handle_random_swap(wallet):
@@ -131,6 +134,7 @@ async def handle_random_swap(wallet):
 
 
 async def handle_liquidity(wallet):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     tokens_with_balance = await get_tokens_with_balance(wallet.address)
     token0 = {'name': 'PHRS', 'decimals': 18, 'balance': await w3.eth.get_balance(wallet.address)}
     token1 = tokens_with_balance[0]
@@ -149,6 +153,7 @@ async def handle_liquidity(wallet):
 
 
 async def send_to_friends(wallet):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     balance = w3.eth.get_balance(wallet.address)
     amount = random.randint(settings.TASKS.SEND_TO_FRIENDS.AMOUNT[0], settings.TASKS.SEND_TO_FRIENDS.AMOUNT[1]) / 100 * balance
 

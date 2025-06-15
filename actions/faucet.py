@@ -1,12 +1,8 @@
-from web3 import AsyncWeb3
-from eth_account import Account
-from data.const import abi
-from data.const import rpc, faucet_address
 from utils.logger import logger
+from data.const import zenith_headers
 import aiohttp
 
 
-w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
 
 async def is_able_to_faucet(session: aiohttp.ClientSession, wallet_address, headers):
     url = f'https://api.pharosnetwork.xyz/faucet/status?address={wallet_address}'
@@ -36,23 +32,17 @@ async def fetch_native_faucet(session: aiohttp.ClientSession, wallet_address, is
         logger.warning(wallet_address, 'Twitter not connected')
 
 
-async def fetch_stable_faucet(wallet: Account, token: dict):
-    contract = w3.eth.contract(address=faucet_address, abi=abi['zenith_abi'])
-
-    gas_limit = await contract.functions.mint(token['contract_address'], wallet.address, 1000000000000000000000).estimate_gas()
-    tx = await contract.functions.mint(token['contract_address'], wallet.address, 1000000000000000000000).build_transaction({
-        'chainId': 688688,
-        'gasLimit': gas_limit * 1.5,
-        'gasPrice': await w3.eth.gas_price,
-        'nonce': await w3.eth.get_transaction_count(wallet.address),
-    })
-
-    signed_tx = wallet.sign_transaction(tx)
-    tx_hash = await w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-    tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
-    if tx_receipt.status == 1:
-        logger.success(wallet.address, f'Successfully minted {token['name']}')
-    else:
-        logger.error(wallet.address, f'Error while minting {token['name']}: {tx_receipt}')
-
+async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, token_address):
+    url = 'https://testnet-router.zenithswap.xyz/api/v1/faucet'
+    try:
+        data = {
+            'tokenAddress': token_address,
+            'userAddress': wallet_address
+        }
+        async with session.post(url=url, headers=zenith_headers, json=data) as response:
+            data = await response.json()
+            if response['message'] == 'system error': raise Exception('Error while fetching stable faucet, retrying...')
+            if response.status == 200: return True
+    except Exception as e:
+        logger.error(f'{wallet_address} | An error occurred while fetching stable faucet: {e}')
+            

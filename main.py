@@ -22,7 +22,7 @@ async def handle_account(private_key, proxy, action_name):
         action_func = getattr(pharos, action_name)
         await action_func()
     except Exception as e:
-        logger.error(wallet_address, f'An error occurred: {e}')
+        logger.error(wallet_address, f'An error occurred while handling account: {e}')
     finally:
         await pharos.close_session()
 

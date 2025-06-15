@@ -15,7 +15,7 @@ import random
 discords = load_txt('data/discord_tokens.txt')
 twitters = load_txt('data/twitter_tokens.txt')
 settings = load_yaml('settings.yaml')
-ATTEMPTS, SLEEP_BETWEEN_ACTIONS, SLEEP_AFTER_ERROR = settings['ATTEMPTS'], settings['SLEEP_BETWEEN_ACTIONS'], settings['SLEEP_AFTER_ERROR']
+ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
     'SWAP': handle_random_swap,
@@ -25,7 +25,7 @@ tasks_functions = {
 
 
 class PharosClient:
-    def __init__(self, private_key, proxy):
+    def __init__(self, private_key, proxy=None):
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy)
         self.headers = pharos_headers
@@ -39,7 +39,9 @@ class PharosClient:
 
     async def login(self):
         url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={self._sign_message()}'
-
+        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        await asyncio.sleep(random_sleep)
         for retry in range(ATTEMPTS):
             try:
                 async with self.session.post(url=url, headers=self.headers) as response:
@@ -50,11 +52,11 @@ class PharosClient:
                         logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
                         return
                     else:
-                        random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                         logger.error(self.wallet.address, f'Error while logging in: {response.text()}. Retrying in {random_sleep} sec...')
                         await asyncio.sleep(random_sleep)
             except Exception as e:
-                logger.error(self.wallet.address, f'An error occurred: {e}')
+                logger.error(self.wallet.address, f'An error occurred while logging in: {e}')
 
 
     async def get_user_data(self):
@@ -67,12 +69,12 @@ class PharosClient:
                         data = await response.json()
                         return data
                     else:
-                        random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
+                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                         logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
                         await asyncio.sleep(random_sleep)
 
             except Exception as e:
-                logger.error(self.wallet.address, f'An error occurred: {e}')
+                logger.error(self.wallet.address, f'An error occurred while gettings user data: {e}')
             
 
     async def fetch_faucet(self):
@@ -89,18 +91,18 @@ class PharosClient:
                     logger.warning(self.wallet.address, 'You already used native faucet today')
                     break
             except Exception as e:
-                random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
-                logger.error(self.wallet.address, f'An error occurred: {e}. Retrying in {random_sleep} sec...')
+                random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                logger.error(self.wallet.address, f'An error occurred while fetching native faucet: {e}. Retrying in {random_sleep} sec...')
                 await asyncio.sleep(random_sleep)
 
         for stable in stables:
             for retry in range(ATTEMPTS):
                 try:
-                    await fetch_stable_faucet(self.wallet, stable)
+                    await fetch_stable_faucet(self.session, self.wallet, stable['contract_address'])
                     break
                 except Exception as e:
-                    random_sleep = random.randint(SLEEP_AFTER_ERROR[0], SLEEP_AFTER_ERROR[1])
-                    logger.error(self.wallet.address, f'An error occurred: {e}. Retrying in {random_sleep} sec...')
+                    random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                    logger.error(self.wallet.address, f'An error occurred while fetching stable faucet: {e}. Retrying in {random_sleep} sec...')
                     await asyncio.sleep(random_sleep)
 
 
@@ -122,7 +124,7 @@ class PharosClient:
         for task in all_tasks:
             for task_name, task_count in task.items():
                 for i in range(task_count):
-                    random_sleep = random.randint(SLEEP_BETWEEN_ACTIONS[0], SLEEP_BETWEEN_ACTIONS[1])
+                    random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                     await tasks_functions[task_name]()
                     logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before next action...')
                     await asyncio.sleep(random_sleep)
