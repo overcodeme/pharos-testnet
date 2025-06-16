@@ -32,17 +32,17 @@ async def fetch_native_faucet(session: aiohttp.ClientSession, wallet_address, is
         logger.warning(wallet_address, 'Twitter not connected')
 
 
-async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, token_address):
+async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, token):
     url = 'https://testnet-router.zenithswap.xyz/api/v1/faucet'
     try:
         data = {
-            'tokenAddress': token_address,
+            'tokenAddress': token['contract_address'],
             'userAddress': wallet_address
         }
         async with session.post(url=url, headers=zenith_headers, json=data) as response:
             data = await response.json()
-            if response['message'] == 'system error': raise Exception('Error while fetching stable faucet, retrying...')
-            if response.status == 200: return True
+            if data['message'] == 'system error': raise Exception('Error while fetching stable faucet, retrying...')
+            if response.status == 200: logger.success(wallet_address, f'Successfully claimed {token['name']} faucet')
     except Exception as e:
-        logger.error(f'{wallet_address} | An error occurred while fetching stable faucet: {e}')
+        logger.error(wallet_address, f'An error occurred while fetching stable faucet: {e}')
             

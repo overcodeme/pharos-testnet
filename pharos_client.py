@@ -98,7 +98,7 @@ class PharosClient:
         for stable in stables:
             for retry in range(ATTEMPTS):
                 try:
-                    await fetch_stable_faucet(self.session, self.wallet, stable['contract_address'])
+                    await fetch_stable_faucet(self.session, self.wallet.address, stable)
                     break
                 except Exception as e:
                     random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
