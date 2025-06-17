@@ -17,12 +17,14 @@ async def handle_send_to_friends_task(session: aiohttp.ClientSession, wallet, he
 
 async def transfer_phrs(wallet):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    balance = w3.eth.get_balance(wallet.address)
-    amount = random.randint(settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][0], settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][1]) / 100 * balance
+    balance = float(w3.from_wei(await w3.eth.get_balance(wallet.address), 'ether'))
+    amount = (random.randint(settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][0], settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][1]) / 100) * balance
+    random_address = Account.create().address
+
+    logger.info(wallet.address, f'Trying to send {amount} PHRS to {random_address}')
 
     try:
-        random_address = Account.create().address
-
+        
         tx = {
             'chainId': 688688,
             'to': random_address,
@@ -37,7 +39,7 @@ async def transfer_phrs(wallet):
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
             logger.success(wallet.address, f'Successfully sent {amount} PHRS to {random_address}')
-            return f'0x{tx_hash}'
+            return f'0x{tx_hash.hex()}'
         else:
             logger.error(wallet.address, f'Error while sending on another wallet: {tx_receipt}')
 

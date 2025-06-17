@@ -1,11 +1,19 @@
 from web3 import AsyncWeb3
 from eth_account import Account
+from eth_account.messages import encode_defunct
 from utils.file_manager import load_yaml
 from data.const import rpc, abi, router_address, WPHRS_address, stables_data
 from utils.logger import logger
 import aiohttp
 import random
 import time
+
+
+
+def sign_message(wallet, message):
+    encoded_message = encode_defunct(text=message)
+    signature = wallet.sign_message(encoded_message)
+    return f'0x{signature.signature.hex()}'
 
 
 async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, task_id, tx_hash):
@@ -21,8 +29,9 @@ async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, t
 
 async def get_token_balance(wallet_address, token: dict):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+    token['contract_address'] = w3.to_checksum_address(token['contract_address'])
     contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
-    balance = await contract.functiions.balanceOf(wallet_address).call()
+    balance = await contract.functions.balanceOf(wallet_address).call()
     return balance / (10 ** token['decimals'])
 
 
@@ -34,15 +43,15 @@ async def get_tokens_with_balance(wallet_address) -> list:
     for token in tokens_data:
         balance = await get_token_balance(wallet_address, token)
         if balance > 0:
-            result.append({'name': token['name'], 'balance': balance})
+            result.append({'name': token['name'], 'decimals': token['decimals'], 'contract_address': token['contract_address']})
 
     return result
 
 
-async def approve_token(wallet, amount, spender, token: dict):
+async def approve_token(wallet: Account, amount, token: dict):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
-    allowance_amount = (contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
+    allowance_amount = (await contract.functions.allowance(wallet.address, wallet.address).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
         tx = contract.functions.approve(wallet.address, amount).build_transaction({

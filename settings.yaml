@@ -17,4 +17,3 @@ TASKS:
     SEND_TO_FRIENDS:
         TASK_COUNT: [3, 7]
         AMOUNT: [1, 5]
-        
