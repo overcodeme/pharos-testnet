@@ -15,18 +15,22 @@ async def swap_from_native(wallet: Account, token):
     token['contract_address'] = w3.to_checksum_address(token['contract_address'])
     contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=abi['zenith_abi'])
     try:
-        balance = float(w3.from_wei(await w3.eth.get_balance(wallet.address), 'ether'))
-        amount = random.randint(settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][0], settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][1]) / 100 * balance
-        data = contract.functions.exactInputSingle((WPHRS_address, token['contract_address'], 500, wallet.address, w3.to_wei(amount, 'ether'), 0, 0)).build_transaction({
-            'nonce': await w3.eth.get_transaction_count(wallet.address)
-        })['data']
+        balance = int(await w3.eth.get_balance(wallet.address))
+        amount_in_wei = random.randint(settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][0], settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][1]) / 100 * balance
+        amount = w3.from_wei(amount_in_wei, 'ether')
+        data = contract.encode_abi(abi_element_identifier="exactInputSingle", args=[(w3.to_checksum_address(WPHRS_address), w3.to_checksum_address(token['contract_address']), 500, wallet.address, int(amount_in_wei), 1, 0)])
+        deadline = int(time.time() + 1200)
 
         logger.info(wallet.address, f'Trying to swap {amount} PHRS to {token['name']}')
 
-        estimate_gas = await contract.functions.multicall(int(time.time()) + 6000, [data]).estimate_gas({'value': w3.to_wei(amount, 'ether')})
-        tx = await contract.functions.multicall(int(time.time()) + 6000, [data]).build_transaction({
-            'value': w3.to_wei(amount, 'ether'),
-            'gasLimit': estimate_gas * 2,
+        estimate_gas = await contract.functions.multicall(deadline, [data]).estimate_gas({
+            'value': 0
+        })
+        
+        tx = await contract.functions.multicall(deadline, [data]).build_transaction({
+            'from': wallet.address,
+            'value': amount_in_wei,
+            'gas': estimate_gas * 1.5,
             'gasPrice': await w3.eth.gas_price,
             'nonce': await w3.eth.get_transaction_count(wallet.address)
         })
@@ -44,26 +48,31 @@ async def swap_from_native(wallet: Account, token):
         logger.error(wallet.address, f'An error occurred while swapping from native: {e}')
 
 
-async def swap_from_stable(wallet, token1, token2):
+async def swap_from_stable(wallet: Account, token1, token2):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     token1['contract_address'] = w3.to_checksum_address(token1['contract_address'])
     token2['contract_address'] = w3.to_checksum_address(token2['contract_address'])
     contract = w3.eth.contract(address=token1['contract_address'], abi=abi['zenith_abi'])
     try:
-        balance = float(w3.from_wei(await w3.eth.get_balance(wallet.address), 'ether'))
-        amount = random.randint(settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][0], settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][1]) / 100 * balance
-        await approve_token(wallet, amount, token1)
-        data = contract.functions.exactInputSingle(token1['contract_address'], token2['contract_address'], 500, wallet.address, w3.to_wei(amount, 'ether'), 0, 0).build_transaction({
-            'nonce': await w3.eth.get_transaction_count(wallet.address)
-        })['data']
-        estimate_gas = await contract.functions.multicall(int(time.time()) + 6000, [data]).estimate_gas({'value': w3.to_wei(amount, 'ether')})   
+        balance = await get_token_balance(wallet.address, token1)
+        amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][0], settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][1]) / 100 * balance)
+        amount = w3.from_wei(amount_in_wei, 'ether')
+        await approve_token(wallet, amount_in_wei, token1)
+        data = contract.encode_abi(abi_element_identifier="exactInputSingle", args=[(w3.to_checksum_address(token1['contract_address']), w3.to_checksum_address(token2['contract_address']), 500, wallet.address, amount_in_wei, 1, 0)])
+        deadline = int(time.time() + 1200)
 
-        logger.info(wallet.address, f'Trying to swap {amount}{token1['name']} to {token2['name']}')
+        estimate_gas = await contract.functions.multicall(deadline, [data]).estimate_gas({
+            'from': wallet.address,
+            'value': 0
+        })   
 
-        tx = await contract.functions.multicall(int(time.time()) + 6000, [data]).build_transaction({
-            'value': w3.to_wei(amount, 'ether'),
-            'gas': estimate_gas * 2,
-            'gasPrice': await w3.eth.gas_price,
+        logger.info(wallet.address, f'Trying to swap {amount} {token1['name']} to {token2['name']}')
+
+        tx = await contract.functions.multicall(deadline, [data]).build_transaction({
+            'from': wallet.address,
+            'value': amount_in_wei,
+            'gas': estimate_gas * 1.5,
+            'gasPrice': int(await w3.eth.gas_price * 1.5),
             'nonce': await w3.eth.get_transaction_count(wallet.address)
         })
 
@@ -72,7 +81,7 @@ async def swap_from_stable(wallet, token1, token2):
 
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
-            logger.success(wallet.addres, f'Successfully swapped {amount}{token1['name']} to {token2['name']}')
+            logger.success(wallet.addres, f'Successfully swapped {amount} {token1['name']} to {token2['name']}')
         else:
             logger.error(wallet.address, f'Swap error: {tx_receipt}')
 

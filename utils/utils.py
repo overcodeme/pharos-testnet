@@ -21,7 +21,7 @@ async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, t
     try:
         async with session.post(url=url, headers=headers) as response:
             data = await response.json()
-            if not data['verified']:
+            if data['data']['verified'] != True:
                 logger.error(wallet_address, f'Error while verifying task: {await response.text()}')
     except Exception as e:
         logger.error(wallet_address, f'An error occurred while verifying task: {e}')
@@ -54,7 +54,7 @@ async def approve_token(wallet: Account, amount, token: dict):
     allowance_amount = (await contract.functions.allowance(wallet.address, wallet.address).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
-        tx = contract.functions.approve(wallet.address, amount).build_transaction({
+        tx = await contract.functions.approve(wallet.address, amount).build_transaction({
             'chainId': 688688,
             'gas': 150000,
             'gasPrice': await w3.eth.gas_price,
@@ -62,7 +62,7 @@ async def approve_token(wallet: Account, amount, token: dict):
         })
 
         signed_tx = wallet.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        tx_hash = await w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
