@@ -22,15 +22,15 @@ ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
     'SWAP': handle_swap,
-    'LIQUIDITY': handle_liquidity,
-    'SEND_TO_FRIENDS': handle_send_to_friends_task,
+    # 'LIQUIDITY': handle_liquidity,
+    # 'SEND_TO_FRIENDS': handle_send_to_friends_task,
 }
 
 
 class PharosClient:
-    def __init__(self, private_key, proxy):
+    def __init__(self, private_key, proxy=None):
         self.wallet = Account.from_key(private_key)
-        self.session = aiohttp.ClientSession(proxy=proxy)
+        self.session = aiohttp.ClientSession(proxy=proxy if proxy else None)
         self.headers = pharos_headers
 
 

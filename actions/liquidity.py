@@ -2,8 +2,9 @@ from web3 import AsyncWeb3
 from eth_account import Account
 from utils.file_manager import load_yaml
 from utils.utils import get_tokens_with_balance, approve_token, get_token_balance
+from utils.abi import zenith_abi
 from actions.swap import swap_from_native
-from data.const import rpc, stables_data, liq_address, abi, WPHRS_address
+from data.const import rpc, stables_data, liq_address, WPHRS_address
 from utils.logger import logger
 import time
 import random
@@ -14,17 +15,18 @@ settings = load_yaml('settings.yaml')
 async def add_liquidity(wallet: Account, token0, token1):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     try:
-        contract = w3.eth.contract(address=liq_address, abi=abi['liquidity'])
+        contract = w3.eth.contract(address=w3.to_checksum_address(liq_address), abi=zenith_abi)
         balance = await w3.eth.get_balance(wallet.address)
         amount_in_wei = int(random.randint(settings['TASKS']['LIQUIDITY']['AMOUNT'][0], settings['TASKS']['LIQUIDITY']['AMOUNT'][1]) / 100 * balance)
         logger.info(wallet.address, f'Trying add liquidity {token0["name"]}/{token1['name']}')
         await approve_token(wallet, amount_in_wei, token1)
         deadline = int(time.time() + 1200)
-
-        mint_data = contract.encode_abi(abi_element_identifier="mint", args=[(w3.to_checksum_address(WPHRS_address), w3.to_checksum_address(token1['contract_address']), 500, 55530, 55550, amount_in_wei, 0, amount_in_wei, 0, wallet.address, deadline)])
+        mint_data = contract.encode_abi(abi_element_identifier="mint", args=[(w3.to_checksum_address(WPHRS_address), w3.to_checksum_address(token1['contract_address']), 3000, 79620, 89400, amount_in_wei, 0, amount_in_wei, 0, wallet.address, deadline)])
         refund_data = '0x12210e8a'
+
         estimate_gas = await contract.functions.multicall([mint_data, refund_data]).estimate_gas({
-            'value': amount_in_wei
+            'from': wallet.address,
+            'value': 0
         })
 
         tx = await contract.functions.multicall([mint_data, refund_data]).build_transaction({

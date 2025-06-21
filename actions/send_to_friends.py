@@ -24,7 +24,6 @@ async def transfer_phrs(wallet):
     logger.info(wallet.address, f'Trying to send {amount} PHRS to {random_address}')
 
     try:
-        
         tx = {
             'chainId': 688688,
             'to': random_address,

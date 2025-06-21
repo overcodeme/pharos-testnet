@@ -2,12 +2,11 @@ from web3 import AsyncWeb3
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from utils.file_manager import load_yaml
-from data.const import rpc, abi, router_address, WPHRS_address, stables_data
+from utils.abi import erc20token_abi
+from data.const import rpc, stables_data
 from utils.logger import logger
 import aiohttp
 import random
-import time
-
 
 
 def sign_message(wallet, message):
@@ -30,9 +29,9 @@ async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, t
 async def get_token_balance(wallet_address, token: dict):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     token['contract_address'] = w3.to_checksum_address(token['contract_address'])
-    contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
+    contract = w3.eth.contract(address=token['contract_address'], abi=erc20token_abi)
     balance = await contract.functions.balanceOf(wallet_address).call()
-    return balance / (10 ** token['decimals'])
+    return balance
 
 
 async def get_tokens_with_balance(wallet_address) -> list:
@@ -50,7 +49,7 @@ async def get_tokens_with_balance(wallet_address) -> list:
 
 async def approve_token(wallet: Account, amount, token: dict):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    contract = w3.eth.contract(address=token['contract_address'], abi=abi['erc20token'])
+    contract = w3.eth.contract(address=token['contract_address'], abi=erc20token_abi)
     allowance_amount = (await contract.functions.allowance(wallet.address, wallet.address).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:

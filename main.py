@@ -14,7 +14,7 @@ settings = load_yaml('settings.yaml')
 wallets = load_txt('data/wallets.txt')
 proxies = load_txt('data/proxies.txt')
 
-async def handle_account(private_key, proxy, action_name):
+async def handle_account(private_key, action_name, proxy=None):
     pharos = PharosClient(private_key, proxy)
     wallet_address = Account.from_key(private_key).address
     try:
@@ -31,16 +31,18 @@ async def main():
     if not wallets:
         print(Fore.RED + 'No wallets found' + Style.RESET_ALL)
 
-    if not proxies:
-        print(Fore.RED + 'No proxies found' + Style.RESET_ALL)
-
     options = menu_items
     chosen_action = options[curses.wrapper(menu)]['func']
     os.system('cls' if os.name == 'nt' else 'clear')
 
     tasks = []
-    for w, p in zip(wallets, proxies):
-        tasks.append(handle_account(w, p, chosen_action))
+
+    if proxies:
+        for w, p in zip(wallets, proxies):
+            tasks.append(handle_account(private_key=w, proxy=p, action_name=chosen_action))
+    else:
+        for w in wallets:
+            tasks.append(handle_account(private_key=w, action_name=chosen_action))
 
     await asyncio.gather(*tasks)
 

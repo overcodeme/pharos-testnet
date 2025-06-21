@@ -1,8 +1,10 @@
 from web3 import AsyncWeb3
 from eth_account import Account
+from eth_abi import encode
 from utils.file_manager import load_yaml
 from utils.utils import approve_token, get_token_balance, get_tokens_with_balance
-from data.const import rpc, abi, router_address, WPHRS_address, stables_data
+from utils.abi import zenith_abi
+from data.const import rpc, router_address, WPHRS_address, stables_data
 from utils.logger import logger
 import random
 import time
@@ -12,31 +14,39 @@ settings = load_yaml('settings.yaml')
 
 async def swap_from_native(wallet: Account, token):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    token['contract_address'] = w3.to_checksum_address(token['contract_address'])
-    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=abi['zenith_abi'])
+    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_abi)
     try:
         balance = int(await w3.eth.get_balance(wallet.address))
-        amount_in_wei = random.randint(settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][0], settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][1]) / 100 * balance
+        amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][0], settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][1]) / 100 * balance)
         amount = w3.from_wei(amount_in_wei, 'ether')
-        data = contract.encode_abi(abi_element_identifier="exactInputSingle", args=[(w3.to_checksum_address(WPHRS_address), w3.to_checksum_address(token['contract_address']), 500, wallet.address, int(amount_in_wei), 1, 0)])
         deadline = int(time.time() + 1200)
 
         logger.info(wallet.address, f'Trying to swap {amount} PHRS to {token['name']}')
 
-        estimate_gas = await contract.functions.multicall(deadline, [data]).estimate_gas({
-            'value': 0
-        })
-        
-        tx = await contract.functions.multicall(deadline, [data]).build_transaction({
+        exact_input_data = contract.encode_abi(
+            abi_element_identifier='exactInputSingle',
+            args=[(
+                w3.to_checksum_address(WPHRS_address),
+                w3.to_checksum_address(token['contract_address']),
+                500,
+                wallet.address,
+                amount_in_wei,
+                0,
+                0
+            )]
+        )
+
+        tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
+            'chainId': 688688,
             'from': wallet.address,
-            'value': amount_in_wei,
-            'gas': estimate_gas * 1.5,
-            'gasPrice': await w3.eth.gas_price,
-            'nonce': await w3.eth.get_transaction_count(wallet.address)
+            'nonce': await w3.eth.get_transaction_count(wallet.address),
+            'gas': 300000,
+            'gasPrice': int(await w3.eth.gas_price * 1.2),
+            'value': amount_in_wei
         })
 
         signed_tx = wallet.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        tx_hash = await w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
@@ -50,30 +60,36 @@ async def swap_from_native(wallet: Account, token):
 
 async def swap_from_stable(wallet: Account, token1, token2):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    token1['contract_address'] = w3.to_checksum_address(token1['contract_address'])
-    token2['contract_address'] = w3.to_checksum_address(token2['contract_address'])
-    contract = w3.eth.contract(address=token1['contract_address'], abi=abi['zenith_abi'])
+    contract = w3.eth.contract(address=w3.to_checksum_address(token1['contract_address']), abi=zenith_abi)
     try:
         balance = await get_token_balance(wallet.address, token1)
         amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][0], settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][1]) / 100 * balance)
-        amount = w3.from_wei(amount_in_wei, 'ether')
         await approve_token(wallet, amount_in_wei, token1)
-        data = contract.encode_abi(abi_element_identifier="exactInputSingle", args=[(w3.to_checksum_address(token1['contract_address']), w3.to_checksum_address(token2['contract_address']), 500, wallet.address, amount_in_wei, 1, 0)])
+        amount = amount_in_wei / (10 ** token1['decimals'])
         deadline = int(time.time() + 1200)
-
-        estimate_gas = await contract.functions.multicall(deadline, [data]).estimate_gas({
-            'from': wallet.address,
-            'value': 0
-        })   
 
         logger.info(wallet.address, f'Trying to swap {amount} {token1['name']} to {token2['name']}')
 
-        tx = await contract.functions.multicall(deadline, [data]).build_transaction({
+        exact_input_data = contract.encode_abi(
+            abi_element_identifier='exactInputSingle',
+            args=[(
+                w3.to_checksum_address(token1['contract_address']),
+                w3.to_checksum_address(token2['contract_address']),
+                500,
+                wallet.address,
+                amount_in_wei,
+                0,
+                0
+            )]
+        )
+
+        tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
+            'chainId': 688688,
             'from': wallet.address,
-            'value': amount_in_wei,
-            'gas': estimate_gas * 1.5,
-            'gasPrice': int(await w3.eth.gas_price * 1.5),
-            'nonce': await w3.eth.get_transaction_count(wallet.address)
+            'nonce': await w3.eth.get_transaction_count(wallet.address),
+            'gas': 300000,
+            'gasPrice': int(await w3.eth.gas_price * 1.2),
+            'value': amount_in_wei
         })
 
         signed_tx = wallet.sign_transaction(tx)
@@ -90,7 +106,7 @@ async def swap_from_stable(wallet: Account, token1, token2):
 
 
 async def handle_swap(wallet):
-    tokens_data = [*stables_data, {'name': 'WPHRS', 'contract_address': WPHRS_address, 'decimals': 18}]
+    tokens_data = [*stables_data]
     swap_from = 'native' if random.randint(1, 100) < 50 else 'stable'
 
     try:
