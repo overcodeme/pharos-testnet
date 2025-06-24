@@ -22,8 +22,8 @@ ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
     'SWAP': handle_swap,
-    # 'LIQUIDITY': handle_liquidity,
-    # 'SEND_TO_FRIENDS': handle_send_to_friends_task,
+    'LIQUIDITY': handle_liquidity,
+    'SEND_TO_FRIENDS': handle_send_to_friends_task,
 }
 
 
@@ -36,9 +36,9 @@ class PharosClient:
 
     async def login(self):
         url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}'
-        # random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        # await asyncio.sleep(random_sleep)
+        random_sleep = random.randint(20, 90)
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before login...')
+        await asyncio.sleep(random_sleep)
         for _ in range(ATTEMPTS):
             try:
                 async with self.session.post(url=url, headers=self.headers) as response:
@@ -50,7 +50,7 @@ class PharosClient:
                         return
                     else:
                         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                        logger.error(self.wallet.address, f'Error while logging in: {response.text()}. Retrying in {random_sleep} sec...')
+                        logger.error(self.wallet.address, f'Error while logging in: {await response.text()}. Retrying in {random_sleep} sec...')
                         await asyncio.sleep(random_sleep)
             except Exception as e:
                 logger.error(self.wallet.address, f'An error occurred while logging in: {e}')
@@ -79,6 +79,10 @@ class PharosClient:
         stables = stables_data
         is_twitter_connected = True if user_data['data']['user_info']['XId'] else False
         
+        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before fetching faucets...')
+        await asyncio.sleep(random_sleep)
+
         for _ in range(ATTEMPTS):
             try:
                 if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
@@ -105,29 +109,47 @@ class PharosClient:
 
     async def check_in(self):
         for _ in range(ATTEMPTS):
+            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+            logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before daily checkin...')
+            await asyncio.sleep(random_sleep)
             if await checkin(self.session, self.wallet.address, self.headers):
                 break
 
 
     async def run_onchain(self):
         all_tasks = []
+        task_amount = 0
+        task_counter = 0
         
         for task_name, task_data in tasks.items():
             task_count = random.randint(task_data['TASK_COUNT'][0], task_data['TASK_COUNT'][1])
             all_tasks.append({task_name: task_count})
+            task_amount += task_count
         
         random.shuffle(all_tasks)
 
         for task in all_tasks:
             for task_name, task_count in task.items():
                 for _ in range(task_count):
-                    random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                    for retry in range(ATTEMPTS):
+                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
 
-                    if task_name == 'SEND_TO_FRIENDS':
-                        await tasks_functions[task_name](self.session, self.wallet, self.headers)
-                    else:
-                        await tasks_functions[task_name](self.wallet)
-                    logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before next task...')
+                        if task_name == 'SEND_TO_FRIENDS':
+                            task_res = await tasks_functions[task_name](self.session, self.wallet, self.headers)
+                            if task_res: 
+                                task_counter += 1
+                                break
+                            elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
+                        else:
+                            task_res = await tasks_functions[task_name](self.wallet)
+                            if task_res:
+                                task_counter += 1
+                                break
+                            elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
+                        logger.error(self.wallet.address, f'[{task_counter}/{task_amount}] | Error while completing {task_name} task, sleeping for {random_sleep} sec before next retry...')
+                        await asyncio.sleep(random_sleep)
+                    random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                    logger.info(self.wallet.address,  f'[{task_counter}/{task_amount}] | Sleeping for {random_sleep} sec before next task...')
                     await asyncio.sleep(random_sleep)
 
 

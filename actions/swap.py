@@ -36,11 +36,20 @@ async def swap_from_native(wallet: Account, token):
             )]
         )
 
+        estimate_gas = await contract.functions.multicall(deadline, [exact_input_data]).estimate_gas({
+            'chainId': 688688,
+            'from': wallet.address,
+            'nonce': await w3.eth.get_transaction_count(wallet.address),
+            'gas': random.randint(245000, 300000),
+            'gasPrice': int(await w3.eth.gas_price * 1.2),
+            'value': amount_in_wei
+        })
+
         tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': 300000,
+            'gas': estimate_gas * 2,
             'gasPrice': int(await w3.eth.gas_price * 1.2),
             'value': amount_in_wei
         })
@@ -51,6 +60,7 @@ async def swap_from_native(wallet: Account, token):
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
             logger.success(wallet.address, f'Successfully swapped {amount} PHRS to {token['name']}')
+            return True
         else:
             logger.error(wallet.address, f'Swap error: {tx_receipt}')
 
@@ -60,12 +70,12 @@ async def swap_from_native(wallet: Account, token):
 
 async def swap_from_stable(wallet: Account, token1, token2):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    contract = w3.eth.contract(address=w3.to_checksum_address(token1['contract_address']), abi=zenith_abi)
+    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_abi)
     try:
         balance = await get_token_balance(wallet.address, token1)
         amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][0], settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][1]) / 100 * balance)
-        await approve_token(wallet, amount_in_wei, token1)
         amount = amount_in_wei / (10 ** token1['decimals'])
+        await approve_token(wallet, amount, token1, w3.to_checksum_address(router_address))
         deadline = int(time.time() + 1200)
 
         logger.info(wallet.address, f'Trying to swap {amount} {token1['name']} to {token2['name']}')
@@ -83,13 +93,20 @@ async def swap_from_stable(wallet: Account, token1, token2):
             )]
         )
 
+        estimate_gas = await contract.functions.multicall(deadline, [exact_input_data]).estimate_gas({
+            'chainId': 688688,
+            'from': wallet.address,
+            'nonce': await w3.eth.get_transaction_count(wallet.address),
+            'gas': random.randint(245000, 300000),
+            'gasPrice': int(await w3.eth.gas_price * 1.2)
+        })
+
         tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': 300000,
-            'gasPrice': int(await w3.eth.gas_price * 1.2),
-            'value': amount_in_wei
+            'gas': estimate_gas * 2,
+            'gasPrice': int(await w3.eth.gas_price * 1.2)
         })
 
         signed_tx = wallet.sign_transaction(tx)
@@ -97,7 +114,8 @@ async def swap_from_stable(wallet: Account, token1, token2):
 
         tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
         if tx_receipt.status == 1:
-            logger.success(wallet.addres, f'Successfully swapped {amount} {token1['name']} to {token2['name']}')
+            logger.success(wallet.address, f'Successfully swapped {amount} {token1['name']} to {token2['name']}')
+            return True
         else:
             logger.error(wallet.address, f'Swap error: {tx_receipt}')
 
@@ -112,16 +130,16 @@ async def handle_swap(wallet):
     try:
         if swap_from == 'native':
             swap_to = random.choice(stables_data)
-            await swap_from_native(wallet, swap_to)
+            if await swap_from_native(wallet, swap_to): return True
         else:
             tokens_with_balance = await get_tokens_with_balance(wallet.address)
             if len(tokens_with_balance) < 1:
                 swap_to = random.choice(stables_data)
-                await swap_from_native(wallet, swap_to)
+                if await swap_from_native(wallet, swap_to): return True
             else:
                 token1 = random.choice(tokens_with_balance)
                 tokens_data.remove(token1)
                 token2 = random.choice(tokens_data)
-                await swap_from_stable(wallet, token1, token2)
+                if await swap_from_stable(wallet, token1, token2): return True
     except Exception as e:
         logger.error(wallet.address, f'Error while handling random swap: {e}')

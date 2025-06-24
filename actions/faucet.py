@@ -40,8 +40,8 @@ async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, to
             'userAddress': wallet_address
         }
         async with session.post(url=url, headers=zenith_headers, json=data) as response:
-            data = await response.json()
-            if data['message'] == 'system error': raise Exception('Error while fetching stable faucet, retrying...')
+            data = await response.text()
+            if 'system error' in data: raise Exception('Error while fetching stable faucet, retrying...')
             if response.status == 200: logger.success(wallet_address, f'Successfully claimed {token['name']} faucet')
     except Exception as e:
         logger.error(wallet_address, f'An error occurred while fetching stable faucet: {e}')

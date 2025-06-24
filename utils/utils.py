@@ -1,7 +1,6 @@
 from web3 import AsyncWeb3
 from eth_account import Account
 from eth_account.messages import encode_defunct
-from utils.file_manager import load_yaml
 from utils.abi import erc20token_abi
 from data.const import rpc, stables_data
 from utils.logger import logger
@@ -9,7 +8,7 @@ import aiohttp
 import random
 
 
-def sign_message(wallet, message):
+def sign_message(wallet: Account, message):
     encoded_message = encode_defunct(text=message)
     signature = wallet.sign_message(encoded_message)
     return f'0x{signature.signature.hex()}'
@@ -22,14 +21,16 @@ async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, t
             data = await response.json()
             if data['data']['verified'] != True:
                 logger.error(wallet_address, f'Error while verifying task: {await response.text()}')
+                return False
+            return True
     except Exception as e:
         logger.error(wallet_address, f'An error occurred while verifying task: {e}')
+        return False
 
 
 async def get_token_balance(wallet_address, token: dict):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    token['contract_address'] = w3.to_checksum_address(token['contract_address'])
-    contract = w3.eth.contract(address=token['contract_address'], abi=erc20token_abi)
+    contract = w3.eth.contract(address=w3.to_checksum_address(token['contract_address']), abi=erc20token_abi)
     balance = await contract.functions.balanceOf(wallet_address).call()
     return balance
 
@@ -47,15 +48,15 @@ async def get_tokens_with_balance(wallet_address) -> list:
     return result
 
 
-async def approve_token(wallet: Account, amount, token: dict):
+async def approve_token(wallet: Account, amount, token: dict, spender):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
-    contract = w3.eth.contract(address=token['contract_address'], abi=erc20token_abi)
-    allowance_amount = (await contract.functions.allowance(wallet.address, wallet.address).call()) / (10 ** token['decimals'])
+    contract = w3.eth.contract(address=w3.to_checksum_address(token['contract_address']), abi=erc20token_abi)
+    allowance_amount = (await contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
-        tx = await contract.functions.approve(wallet.address, amount).build_transaction({
+        tx = await contract.functions.approve(spender, 1000000000000).build_transaction({
             'chainId': 688688,
-            'gas': 150000,
+            'gas': random.randint(100000, 150000),
             'gasPrice': await w3.eth.gas_price,
             'nonce': await w3.eth.get_transaction_count(wallet.address)
         })

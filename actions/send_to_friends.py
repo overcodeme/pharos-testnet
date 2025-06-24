@@ -12,7 +12,8 @@ settings = load_yaml('settings.yaml')
 
 async def handle_send_to_friends_task(session: aiohttp.ClientSession, wallet, headers):
     tx_hash = await transfer_phrs(wallet)
-    await verify_task(session, wallet.address, headers, '103', tx_hash)
+    if await verify_task(session, wallet.address, headers, '103', tx_hash): return True
+    else: return False
 
 
 async def transfer_phrs(wallet):
@@ -41,6 +42,8 @@ async def transfer_phrs(wallet):
             return f'0x{tx_hash.hex()}'
         else:
             logger.error(wallet.address, f'Error while sending on another wallet: {tx_receipt}')
+            return False
 
     except Exception as e:
         logger.error(wallet.address, f'An error occurred: {e}')
+        return False
