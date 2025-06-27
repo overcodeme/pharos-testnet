@@ -184,3 +184,6 @@ data/discord_tokens.txt
 
 # Twitter tokens
 data/twitter_tokens.txt
+
+# Sessions
+data/sessions.json

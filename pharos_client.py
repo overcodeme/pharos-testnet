@@ -1,14 +1,13 @@
 from eth_account import Account
-from eth_account.messages import encode_defunct
 from data.const import pharos_headers, stables_data
 from utils.logger import logger
-from utils.file_manager import load_yaml, load_txt
+from utils.file_manager import load_yaml, load_txt, save_session, load_json
 from utils.utils import sign_message
 from actions.checkin import checkin
 from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 from actions.send_to_friends import handle_send_to_friends_task
 from actions.swap import handle_swap
-from actions.liquidity import handle_liquidity
+from actions.liquidity import add_liquidity
 from colorama import Fore, Style
 import aiohttp
 import asyncio
@@ -18,11 +17,12 @@ import random
 discords = load_txt('data/discord_tokens.txt')
 twitters = load_txt('data/twitter_tokens.txt')
 settings = load_yaml('settings.yaml')
+sessions = load_json('data/sessions.json')
 ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
     'SWAP': handle_swap,
-    'LIQUIDITY': handle_liquidity,
+    'LIQUIDITY': add_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
 }
 
@@ -34,19 +34,35 @@ class PharosClient:
         self.headers = pharos_headers
 
 
-    async def login(self):
-        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}'
+    async def handle_wallet(self):
         random_sleep = random.randint(20, 90)
-        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before login...')
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
         await asyncio.sleep(random_sleep)
+        token = sessions.get(self.wallet.address)
+
+        if token:
+            self.headers['authorization'] = f'Bearer {token}'
+            user_data = await self.get_user_data()
+            if user_data['code'] == 0:
+                logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
+        else:
+            await self.login()
+
+
+    async def login(self):
+        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}&wallet=Rabby+Wallet'
+
         for _ in range(ATTEMPTS):
             try:
                 async with self.session.post(url=url, headers=self.headers) as response:
-                    if response.status == 200:
+                    data = response.json()
+                    if data['code'] == 1:
                         data = await response.json()
-                        self.headers['authorization'] = f'Bearer {data['data']['jwt']}'
+                        token = data['data']['jwt']
+                        self.headers['authorization'] = f'Bearer {token}'
                         user_data = await self.get_user_data()
                         logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
+                        save_session(session_data=[self.wallet.address, token])
                         return
                     else:
                         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
@@ -62,13 +78,18 @@ class PharosClient:
         for _ in range(ATTEMPTS):
             try:
                 async with self.session.get(url=url, headers=self.headers) as response:
-                    if response.status == 200:
+                    data = await response.json()
+                    if data['msg'] == 'ok':
                         data = await response.json()
                         return data
                     else:
-                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                        logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
-                        await asyncio.sleep(random_sleep)
+                        data = await response.text()
+                        if 'invalid token' in data:
+                            await self.login()
+                        else:
+                            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                            logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
+                            await asyncio.sleep(random_sleep)
 
             except Exception as e:
                 logger.error(self.wallet.address, f'An error occurred while gettings user data: {e}')

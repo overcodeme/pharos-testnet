@@ -1,9 +1,9 @@
 from web3 import AsyncWeb3
 from eth_account import Account
 from eth_account.messages import encode_defunct
-from utils.abi import erc20token_abi
 from data.const import rpc, stables_data
 from utils.logger import logger
+from utils.abi import erc20token_abi
 import aiohttp
 import random
 
@@ -36,14 +36,14 @@ async def get_token_balance(wallet_address, token: dict):
 
 
 async def get_tokens_with_balance(wallet_address) -> list:
-    tokens_data = [*stables_data]
-    random.shuffle(tokens_data)
+    tokens = [*stables_data]
+    random.shuffle(tokens)
     result = []
 
-    for token in tokens_data:
+    for token in tokens:
         balance = await get_token_balance(wallet_address, token)
         if balance > 0:
-            result.append({'name': token['name'], 'decimals': token['decimals'], 'contract_address': token['contract_address']})
+            result.append(token)
 
     return result
 
@@ -54,9 +54,15 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
     allowance_amount = (await contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
+        estimate_gas = await contract.functions.approve(spender, 1000000000000).estimate_gas({
+            'chainId': 688688,
+            'gasPrice': await w3.eth.gas_price,
+            'nonce': await w3.eth.get_transaction_count(wallet.address)
+        })
+
         tx = await contract.functions.approve(spender, 1000000000000).build_transaction({
             'chainId': 688688,
-            'gas': random.randint(100000, 150000),
+            'gas': estimate_gas * 2,
             'gasPrice': await w3.eth.gas_price,
             'nonce': await w3.eth.get_transaction_count(wallet.address)
         })
@@ -69,3 +75,4 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
             logger.success(wallet.address, f'Successfully approved {token['name']}')
         else:
             logger.error(wallet.address, f'Token {token['name']} approve error: {tx_receipt}')
+    

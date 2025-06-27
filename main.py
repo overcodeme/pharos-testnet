@@ -18,7 +18,7 @@ async def handle_account(private_key, action_name, proxy=None):
     pharos = PharosClient(private_key, proxy)
     wallet_address = Account.from_key(private_key).address
     try:
-        await pharos.login()
+        await pharos.handle_wallet()
         action_func = getattr(pharos, action_name)
         await action_func()
     except Exception as e:
