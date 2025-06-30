@@ -6,8 +6,9 @@ from utils.utils import sign_message
 from actions.checkin import checkin
 from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 from actions.send_to_friends import handle_send_to_friends_task
-from actions.swap import handle_swap
-from actions.liquidity import add_liquidity
+from actions.zenith_swap import zenith_handle_swap
+from actions.zenith_liquidity import zenith_add_liquidity
+from actions.mint_badge import mint_badge
 from colorama import Fore, Style
 import aiohttp
 import asyncio
@@ -21,8 +22,8 @@ sessions = load_json('data/sessions.json')
 ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
-    'SWAP': handle_swap,
-    'LIQUIDITY': add_liquidity,
+    'SWAP': zenith_handle_swap,
+    'LIQUIDITY': zenith_add_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
 }
 
@@ -50,7 +51,7 @@ class PharosClient:
 
 
     async def login(self):
-        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}&wallet=Rabby+Wallet'
+        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}&wallet=OKX+Wallet'
 
         for _ in range(ATTEMPTS):
             try:
@@ -172,6 +173,15 @@ class PharosClient:
                     random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                     logger.info(self.wallet.address,  f'[{task_counter}/{task_amount}] | Sleeping for {random_sleep} sec before next task...')
                     await asyncio.sleep(random_sleep)
+
+
+    async def mint_testnet_badge(self):
+        for _ in range(ATTEMPTS):
+            if await mint_badge(self.wallet): return
+            else:
+                random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
+                await asyncio.sleep(random_sleep)
 
 
     async def connect_socials(self):

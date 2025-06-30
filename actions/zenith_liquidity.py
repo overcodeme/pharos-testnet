@@ -11,7 +11,7 @@ import random
 
 settings = load_yaml('settings.yaml')
 
-async def add_liquidity(wallet: Account):
+async def zenith_add_liquidity(wallet: Account):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     try:
         contract = w3.eth.contract(address=w3.to_checksum_address(liq_address), abi=zenith_liquidity)
@@ -29,8 +29,8 @@ async def add_liquidity(wallet: Account):
                 w3.to_checksum_address(WPHRS_address),
                 w3.to_checksum_address(token1['contract_address']),
                 500,
-                217910,
-                217930,
+                832166,
+                833346,
                 amount_in_wei,
                 amount1,
                 0,
@@ -72,8 +72,6 @@ async def add_liquidity(wallet: Account):
             return True
         else:
             logger.error(wallet.address, f'Error while adding liquidity: {tx_receipt}')
-            return False
 
     except Exception as e:
         logger.error(wallet.address, f'An error occurred while adding liquidity: {e}')
-        return False

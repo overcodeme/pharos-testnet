@@ -1,6 +1,5 @@
 from web3 import AsyncWeb3
 from eth_account import Account
-from eth_abi import encode
 from utils.file_manager import load_yaml
 from utils.utils import approve_token, get_token_balance, get_tokens_with_balance
 from utils.abi import zenith_swap
@@ -121,7 +120,7 @@ async def swap_from_stable(wallet: Account, token1, token2):
         logger.error(wallet.address, f'An error occurred while swapping from stable: {e}')
 
 
-async def handle_swap(wallet):
+async def zenith_handle_swap(wallet):
     tokens_data = [*stables_data]
     swap_from = 'native' if random.randint(1, 100) < 50 else 'stable'
 
