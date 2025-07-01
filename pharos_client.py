@@ -177,7 +177,9 @@ class PharosClient:
 
     async def mint_testnet_badge(self):
         for _ in range(ATTEMPTS):
-            if await mint_badge(self.wallet): return
+            res = await mint_badge(self.wallet)
+            if res: return
+            elif res == 'Not enough balance': return
             else:
                 random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                 logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')

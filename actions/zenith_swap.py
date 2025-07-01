@@ -39,16 +39,17 @@ async def swap_from_native(wallet: Account, token):
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': random.randint(245000, 300000),
-            'gasPrice': int(await w3.eth.gas_price * 1.2)
+            'gasPrice': int(await w3.eth.gas_price * 1.2),
+            'value': amount_in_wei
         })
 
         tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': estimate_gas * 2,
-            'gasPrice': int(await w3.eth.gas_price * 1.2)
+            'gas': int(estimate_gas * 1.5),
+            'gasPrice': await w3.eth.gas_price,
+            'value': amount_in_wei
         })
 
         signed_tx = wallet.sign_transaction(tx)
@@ -94,16 +95,17 @@ async def swap_from_stable(wallet: Account, token1, token2):
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': random.randint(245000, 300000),
-            'gasPrice': int(await w3.eth.gas_price * 1.2)
+            'gasPrice': int(await w3.eth.gas_price * 1.2),
+            'value': 0
         })
 
         tx = await contract.functions.multicall(deadline, [exact_input_data]).build_transaction({
             'chainId': 688688,
             'from': wallet.address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
-            'gas': estimate_gas * 2,
-            'gasPrice': int(await w3.eth.gas_price * 1.2)
+            'gas': int(estimate_gas * 1.5),
+            'gasPrice': await w3.eth.gas_price,
+            'value': 0
         })
 
         signed_tx = wallet.sign_transaction(tx)

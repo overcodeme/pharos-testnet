@@ -7,12 +7,15 @@ from data.const import menu_items
 from pharos_client import PharosClient
 from utils.menu import menu
 from colorama import Fore, Style
+import random
 import os
 
 
 settings = load_yaml('settings.yaml')
 wallets = load_txt('data/wallets.txt')
 proxies = load_txt('data/proxies.txt')
+
+random.shuffle(wallets)
 
 async def handle_account(private_key, action_name, proxy=None):
     pharos = PharosClient(private_key, proxy)
