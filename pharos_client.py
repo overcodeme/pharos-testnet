@@ -3,6 +3,7 @@ from data.const import pharos_headers, stables_data
 from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
 from utils.utils import sign_message
+from utils.decorators import handle_retries
 from actions.checkin import checkin
 from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 from actions.send_to_friends import handle_send_to_friends_task
@@ -36,9 +37,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        # random_sleep = random.randint(20, 90)
-        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        # await asyncio.sleep(random_sleep)
+        random_sleep = random.randint(20, 90)
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -49,53 +50,51 @@ class PharosClient:
         else:
             await self.login()
 
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def login(self):
         url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}&wallet=OKX+Wallet'
 
-        for _ in range(ATTEMPTS):
-            try:
-                async with self.session.post(url=url, headers=self.headers) as response:
-                    data = response.json()
-                    if data['code'] == 1:
-                        data = await response.json()
-                        token = data['data']['jwt']
-                        self.headers['authorization'] = f'Bearer {token}'
-                        user_data = await self.get_user_data()
-                        logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
-                        save_session(session_data=[self.wallet.address, token])
-                        return
-                    else:
-                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                        logger.error(self.wallet.address, f'Error while logging in: {await response.text()}. Retrying in {random_sleep} sec...')
-                        await asyncio.sleep(random_sleep)
-            except Exception as e:
-                logger.error(self.wallet.address, f'An error occurred while logging in: {e}')
+        try:
+            async with self.session.post(url=url, headers=self.headers) as response:
+                data = response.json()
+                if data['code'] == 1:
+                    data = await response.json()
+                    token = data['data']['jwt']
+                    self.headers['authorization'] = f'Bearer {token}'
+                    user_data = await self.get_user_data()
+                    logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
+                    save_session(session_data=[self.wallet.address, token])
+                    return
+                else:
+                    random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                    logger.error(self.wallet.address, f'Error while logging in: {await response.text()}. Retrying in {random_sleep} sec...')
+                    await asyncio.sleep(random_sleep)
+        except Exception as e:
+            logger.error(self.wallet.address, f'An error occurred while logging in: {e}')
 
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def get_user_data(self):
         url = f'https://api.pharosnetwork.xyz/user/profile?address={self.wallet.address}'
 
-        for _ in range(ATTEMPTS):
-            try:
-                async with self.session.get(url=url, headers=self.headers) as response:
+        try:
+            async with self.session.get(url=url, headers=self.headers) as response:
+                data = await response.json()
+                if data['msg'] == 'ok':
                     data = await response.json()
-                    if data['msg'] == 'ok':
-                        data = await response.json()
-                        return data
+                    return data
+                else:
+                    data = await response.text()
+                    if 'invalid token' in data:
+                        await self.login()
                     else:
-                        data = await response.text()
-                        if 'invalid token' in data:
-                            await self.login()
-                        else:
-                            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                            logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
-                            await asyncio.sleep(random_sleep)
+                        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+                        logger.error(self.wallet.address, f'Error while getting user data: {await response.text()} Retrying in {random_sleep} sec...')
+                        await asyncio.sleep(random_sleep)
 
-            except Exception as e:
-                logger.error(self.wallet.address, f'An error occurred while gettings user data: {e}')
+        except Exception as e:
+            logger.error(self.wallet.address, f'An error occurred while gettings user data: {e}')
             
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def fetch_faucet(self):
         user_data = await self.get_user_data()
         stables = stables_data
@@ -105,18 +104,15 @@ class PharosClient:
         logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before fetching faucets...')
         await asyncio.sleep(random_sleep)
 
-        for _ in range(ATTEMPTS):
-            try:
-                if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
-                    await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers)
-                    break
-                else:
-                    logger.warning(self.wallet.address, 'You already used native faucet today')
-                    break
-            except Exception as e:
-                random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                logger.error(self.wallet.address, f'An error occurred while fetching native faucet: {e}. Retrying in {random_sleep} sec...')
-                await asyncio.sleep(random_sleep)
+        try:
+            if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
+                await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers)
+            else:
+                logger.warning(self.wallet.address, 'You already used native faucet today')
+        except Exception as e:
+            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+            logger.error(self.wallet.address, f'An error occurred while fetching native faucet: {e}. Retrying in {random_sleep} sec...')
+            await asyncio.sleep(random_sleep)
 
         for stable in stables:
             for _ in range(ATTEMPTS):
@@ -128,14 +124,13 @@ class PharosClient:
                     logger.error(self.wallet.address, f'An error occurred while fetching stable faucet: {e}. Retrying in {random_sleep} sec...')
                     await asyncio.sleep(random_sleep)
 
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def check_in(self):
-        for _ in range(ATTEMPTS):
-            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-            logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before daily checkin...')
-            await asyncio.sleep(random_sleep)
-            if await checkin(self.session, self.wallet.address, self.headers):
-                break
+        random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before daily checkin...')
+        await asyncio.sleep(random_sleep)
+        if await checkin(self.session, self.wallet.address, self.headers):
+            break
 
 
     async def run_onchain(self):
@@ -174,18 +169,17 @@ class PharosClient:
                     logger.info(self.wallet.address,  f'[{task_counter}/{task_amount}] | Sleeping for {random_sleep} sec before next task...')
                     await asyncio.sleep(random_sleep)
 
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def mint_testnet_badge(self):
-        for _ in range(ATTEMPTS):
-            res = await mint_badge(self.wallet)
-            if res: return
-            elif res == 'Not enough balance': return
-            else:
-                random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-                logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
-                await asyncio.sleep(random_sleep)
+        res = await mint_badge(self.wallet)
+        if res: return
+        elif res == 'Not enough balance': return
+        else:
+            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+            logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
+            await asyncio.sleep(random_sleep)
 
-
+    @handle_retries(max_retries=ATTEMPTS)
     async def connect_socials(self):
         pass
                 

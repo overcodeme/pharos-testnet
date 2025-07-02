@@ -29,8 +29,8 @@ async def zenith_add_liquidity(wallet: Account):
                 w3.to_checksum_address(WPHRS_address),
                 w3.to_checksum_address(token1['contract_address']),
                 500,
-                832166,
-                833346,
+                217910,
+                217930,
                 amount_in_wei,
                 amount1,
                 0,
@@ -45,19 +45,16 @@ async def zenith_add_liquidity(wallet: Account):
         # estimate_gas = await contract.functions.multicall([mint_data, refund_data]).estimate_gas({
         #     'chainId': 688688,
         #     'from': wallet.address,
-        #     'gas': random.randint(400000, 600000),
         #     'gasPrice': await w3.eth.gas_price,
         #     'nonce': await w3.eth.get_transaction_count(wallet.address),
-        #     'value': amount_in_wei
+        #     'value': 0
         # })
         # print(estimate_gas)
 
-        data = [mint_data, refund_data]
-
-        tx = await contract.functions.multicall(data).build_transaction({
+        tx = await contract.functions.multicall([mint_data, refund_data]).build_transaction({
             'chainId': 688688,
             'from': wallet.address,
-            'gas': int(random.randint(300000, 450000) * 1.5),
+            'gas': random.randint(400000, 550000),
             'gasPrice': await w3.eth.gas_price,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
             'value': amount_in_wei
