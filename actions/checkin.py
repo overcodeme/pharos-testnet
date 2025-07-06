@@ -16,9 +16,10 @@ async def checkin(session: aiohttp.ClientSession, wallet_address, headers):
             data = await response.text()
             if 'already signed in today' in data:
                 logger.warning(wallet_address, f'Already completed checkin today')
+                return True
             else:
                 logger.success(wallet_address, f'Daily check-in task completed')
-            return True
+                return True
         else:
             random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
             logger.error(wallet_address, f'Error while daily checking in: {response.text()}. Retrying in {random_sleep} sec...')

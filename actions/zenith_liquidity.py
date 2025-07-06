@@ -11,8 +11,7 @@ import random
 
 settings = load_yaml('settings.yaml')
 
-async def zenith_add_liquidity(wallet: Account):
-    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+async def zenith_add_liquidity(wallet: Account, w3=AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))):
     try:
         contract = w3.eth.contract(address=w3.to_checksum_address(liq_address), abi=zenith_liquidity)
         token1 = random.choice(stables_data)

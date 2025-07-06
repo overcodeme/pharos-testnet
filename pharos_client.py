@@ -1,5 +1,6 @@
 from eth_account import Account
-from data.const import pharos_headers, stables_data
+from web3 import AsyncWeb3
+from data.const import pharos_headers, stables_data, rpc
 from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
 from utils.utils import sign_message
@@ -31,6 +32,7 @@ tasks_functions = {
 
 class PharosClient:
     def __init__(self, private_key, proxy=None):
+        self.w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc, request_kwargs={'proxies': {"http": proxy, "https": proxy}})) if proxy else AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy if proxy else None)
         self.headers = pharos_headers
@@ -129,8 +131,7 @@ class PharosClient:
         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
         logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before daily checkin...')
         await asyncio.sleep(random_sleep)
-        if await checkin(self.session, self.wallet.address, self.headers):
-            break
+        if await checkin(self.session, self.wallet.address, self.headers): return True
 
 
     async def run_onchain(self):
@@ -152,13 +153,13 @@ class PharosClient:
                         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
 
                         if task_name == 'SEND_TO_FRIENDS':
-                            task_res = await tasks_functions[task_name](self.session, self.wallet, self.headers)
+                            task_res = await tasks_functions[task_name](self.session, self.wallet, self.headers, self.w3)
                             if task_res: 
                                 task_counter += 1
                                 break
                             elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
                         else:
-                            task_res = await tasks_functions[task_name](self.wallet)
+                            task_res = await tasks_functions[task_name](self.wallet, self.w3)
                             if task_res:
                                 task_counter += 1
                                 break

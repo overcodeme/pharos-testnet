@@ -424,3 +424,23 @@ zenith_liquidity = [
     "stateMutability": "view"
   }
 ]
+
+faros_liquidity = [{
+    "type": "function",
+    "name": "addDVMLiquidity",
+    "stateMutability": "payable",
+    "inputs": [
+        { "internalType": "address", "name": "dvmAddress", "type": "address" },
+        { "internalType": "uint256", "name": "baseInAmount", "type": "uint256" },
+        { "internalType": "uint256", "name": "quoteInAmount", "type": "uint256" },
+        { "internalType": "uint256", "name": "baseMinAmount", "type": "uint256" },
+        { "internalType": "uint256", "name": "quoteMinAmount", "type": "uint256" },
+        { "internalType": "uint8", "name": "flag", "type": "uint8" },
+        { "internalType": "uint256", "name": "deadLine", "type": "uint256" }
+    ],
+    "outputs": [
+        { "internalType": "uint256", "name": "shares", "type": "uint256" },
+        { "internalType": "uint256", "name": "baseAdjustedInAmount", "type": "uint256" },
+        { "internalType": "uint256", "name": "quoteAdjustedInAmount", "type": "uint256" }
+    ]
+}]

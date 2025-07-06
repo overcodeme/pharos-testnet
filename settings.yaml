@@ -4,16 +4,16 @@ ATTEMPTS: 3
 ANTICAPTCHA_KEY: ''
 CAPSOLVER_KEY: ''
 
-SLEEP_DURATION: [10, 45]
+SLEEP_DURATION: [50, 120]
 
 TASKS:
-    # SWAP:
-    #     TASK_COUNT: [2, 5]
-    #     SWAP_FROM_NATIVE: [1, 10]
-    #     SWAP_FROM_STABLE: [10, 30]
+    SWAP:
+        TASK_COUNT: [2, 5]
+        SWAP_FROM_NATIVE: [1, 10]
+        SWAP_FROM_STABLE: [10, 30]
     LIQUIDITY:
         TASK_COUNT: [2, 5]
         AMOUNT: [1, 5] 
-    # SEND_TO_FRIENDS:
-    #     TASK_COUNT: [3, 7]
-    #     AMOUNT: [1, 5]
+    SEND_TO_FRIENDS:
+        TASK_COUNT: [3, 7]
+        AMOUNT: [1, 5]

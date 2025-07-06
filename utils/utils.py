@@ -75,4 +75,5 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
             logger.success(wallet.address, f'Successfully approved {token['name']}')
         else:
             logger.error(wallet.address, f'Token {token['name']} approve error: {tx_receipt}')
+
     

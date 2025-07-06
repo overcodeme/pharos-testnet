@@ -11,8 +11,7 @@ import time
 
 settings = load_yaml('settings.yaml')
 
-async def swap_from_native(wallet: Account, token):
-    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+async def swap_from_native(wallet: Account, token, w3: AsyncWeb3):
     contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_swap)
     try:
         balance = int(await w3.eth.get_balance(wallet.address))
@@ -66,8 +65,7 @@ async def swap_from_native(wallet: Account, token):
         logger.error(wallet.address, f'An error occurred while swapping from native: {e}')
 
 
-async def swap_from_stable(wallet: Account, token1, token2):
-    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+async def swap_from_stable(wallet: Account, token1, token2, w3: AsyncWeb3):
     contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_swap)
     try:
         balance = await get_token_balance(wallet.address, token1)
@@ -122,23 +120,23 @@ async def swap_from_stable(wallet: Account, token1, token2):
         logger.error(wallet.address, f'An error occurred while swapping from stable: {e}')
 
 
-async def zenith_handle_swap(wallet):
+async def zenith_handle_swap(wallet, w3=AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))):
     tokens_data = [*stables_data]
     swap_from = 'native' if random.randint(1, 100) < 50 else 'stable'
 
     try:
         if swap_from == 'native':
             swap_to = random.choice(stables_data)
-            if await swap_from_native(wallet, swap_to): return True
+            if await swap_from_native(wallet, swap_to, w3): return True
         else:
             tokens_with_balance = await get_tokens_with_balance(wallet.address)
             if len(tokens_with_balance) < 1:
                 swap_to = random.choice(stables_data)
-                if await swap_from_native(wallet, swap_to): return True
+                if await swap_from_native(wallet, swap_to, w3): return True
             else:
                 token1 = random.choice(tokens_with_balance)
                 tokens_data.remove(token1)
                 token2 = random.choice(tokens_data)
-                if await swap_from_stable(wallet, token1, token2): return True
+                if await swap_from_stable(wallet, token1, token2, w3): return True
     except Exception as e:
         logger.error(wallet.address, f'Error while handling random swap: {e}')
