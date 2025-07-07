@@ -5,11 +5,11 @@ from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
 from utils.utils import sign_message
 from utils.decorators import handle_retries
-from actions.checkin import checkin
-from actions.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
-from actions.send_to_friends import handle_send_to_friends_task
-from actions.zenith_swap import zenith_handle_swap
-from actions.zenith_liquidity import zenith_add_liquidity
+from actions.pharos.checkin import checkin
+from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
+from actions.pharos.send_to_friends import handle_send_to_friends_task
+from actions.zenith.zenith_swap import zenith_handle_swap
+from actions.zenith.zenith_liquidity import zenith_add_liquidity
 from actions.mint_badge import mint_badge
 from colorama import Fore, Style
 import aiohttp
@@ -58,15 +58,15 @@ class PharosClient:
 
         try:
             async with self.session.post(url=url, headers=self.headers) as response:
-                data = response.json()
-                if data['code'] == 1:
+                data = await response.json()
+                if data['code'] == 0:
                     data = await response.json()
                     token = data['data']['jwt']
                     self.headers['authorization'] = f'Bearer {token}'
                     user_data = await self.get_user_data()
                     logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
                     save_session(session_data=[self.wallet.address, token])
-                    return
+                    return True
                 else:
                     random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                     logger.error(self.wallet.address, f'Error while logging in: {await response.text()}. Retrying in {random_sleep} sec...')
