@@ -21,31 +21,31 @@ Additional features will be added gradually, run the `update.bat` file periodica
 ---
 
 ## 🚀 Quick Start Guide
-1. **Clone this repository**
+1. Use `git clone https://github.com/overcodeme/pharos-testnet.git` in console
+2. Use `cd pharos-testnet` in console
+3. Run `install.bat` file to install dependencies
+4. Run `start.bat` and choose any option
 
-```bash
-git clone https://github.com/overcodeme/pharos-testnet.git
-```
-```bash
-cd pharos-testnet
-```
-2. **Install dependencies** 
-   
-Run `install.bat` file
+---
 
-4. **Run bot and confugre your private keys and proxies**
+## 🔧 Configuration
 
-Run `start.bat` and choose any option
-
-Put your private keys in `data/wallets.txt`
+Put your private keys in `data/wallets.txt`:
 ```
 private_key1
 private_key2
 ```
 
-Put your proxies in `data/proxies.txt`
+Put your proxies in `data/proxies.txt`:
 ```
 ip:port
 http://ip:port
 http://user:pass@ip:port
 ```
+
+Configuring `settings.yaml`:
+- ATTEMPTS: amount of retries
+- SLEEP_DURATION: sleep between tasks and actions
+- TASKS: types of tasks
+- TASK_COUNT: task count
+- AMOUNT: spending during the task
