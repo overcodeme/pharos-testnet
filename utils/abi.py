@@ -444,3 +444,26 @@ faros_liquidity = [{
         { "internalType": "uint256", "name": "quoteAdjustedInAmount", "type": "uint256" }
     ]
 }]
+
+zentrafi_abi = [
+    {
+    "type": "function",
+    "name": "swap",
+    "inputs": [{
+        "name": "_amount",
+        "type": "uint256",
+        "internalType": "uint256"
+    }, {
+        "name": "_type",
+        "type": "uint256",
+        "internalType": "uint256"
+    }, {
+        "name": "_bytesProof",
+        "type": "bytes",
+        "internalType": "bytes"
+    }],
+    "outputs": [],
+    "stateMutability": "payable"
+    },
+    
+]

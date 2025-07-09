@@ -7,6 +7,9 @@ CAPSOLVER_KEY: ''
 SLEEP_DURATION: [50, 120]
 
 TASKS:
+    BUY_TOKENS:
+        TASK_COUNT: [2, 4]
+        AMOUNT: [1, 5]
     SWAP:
         TASK_COUNT: [2, 5]
         SWAP_FROM_NATIVE: [1, 10]

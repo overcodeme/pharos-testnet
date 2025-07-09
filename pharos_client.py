@@ -10,8 +10,10 @@ from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_a
 from actions.pharos.send_to_friends import handle_send_to_friends_task
 from actions.zenith.zenith_swap import zenith_handle_swap
 from actions.zenith.zenith_liquidity import zenith_add_liquidity
+from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
 from actions.mint_badge import mint_badge
 from colorama import Fore, Style
+from datetime import datetime, timezone
 import aiohttp
 import asyncio
 import random
@@ -24,6 +26,7 @@ sessions = load_json('data/sessions.json')
 ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 tasks_functions = {
+    'BUY_TOKENS': zentrafi_buy_random_token,
     'SWAP': zenith_handle_swap,
     'LIQUIDITY': zenith_add_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
@@ -47,6 +50,7 @@ class PharosClient:
         if token:
             self.headers['authorization'] = f'Bearer {token}'
             user_data = await self.get_user_data()
+            print(user_data)
             if user_data['code'] == 0:
                 logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
         else:
@@ -54,7 +58,8 @@ class PharosClient:
 
     @handle_retries(max_retries=ATTEMPTS)
     async def login(self):
-        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, 'pharos')}&wallet=OKX+Wallet'
+        message = f'testnet.pharosnetwork.xyz wants you to sign in with your Ethereum account:\n{self.wallet.address}\n\nI accept the Pharos Terms of Service: testnet.pharosnetwork.xyz/privacy-policy/Pharos-PrivacyPolicy.pdf\n\nURI: https://testnet.pharosnetwork.xyz\nVersion: 1\n\nChain ID: 688688\n\nNonce: {await self.w3.eth.get_transaction_count(self.wallet.address)}\n\nIssued At: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'
+        url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, message)}&wallet=OKX+Wallet'
 
         try:
             async with self.session.post(url=url, headers=self.headers) as response:
@@ -98,6 +103,7 @@ class PharosClient:
             
     @handle_retries(max_retries=ATTEMPTS)
     async def fetch_faucet(self):
+        results = {}
         user_data = await self.get_user_data()
         stables = stables_data
         is_twitter_connected = True if user_data['data']['user_info']['XId'] else False
@@ -108,7 +114,10 @@ class PharosClient:
 
         try:
             if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
-                await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers)
+                if await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers):
+                    results['native_faucet': 'ok']
+                else:
+                    results['native_faucet': 'error']
             else:
                 logger.warning(self.wallet.address, 'You already used native faucet today')
         except Exception as e:
@@ -119,12 +128,19 @@ class PharosClient:
         for stable in stables:
             for _ in range(ATTEMPTS):
                 try:
-                    await fetch_stable_faucet(self.session, self.wallet.address, stable)
-                    break
+                    if await fetch_stable_faucet(self.session, self.wallet.address, stable):
+                        results['stable_faucet': 'ok']
+                        break
                 except Exception as e:
                     random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
                     logger.error(self.wallet.address, f'An error occurred while fetching stable faucet: {e}. Retrying in {random_sleep} sec...')
                     await asyncio.sleep(random_sleep)
+
+        if results['native_faucet'] == 'ok' and results['stable_faucet'] == 'ok':
+            return True
+        else:
+            await self.fetch_faucet()
+
 
     @handle_retries(max_retries=ATTEMPTS)
     async def check_in(self):
