@@ -24,6 +24,8 @@ async def handle_account(private_key, action_name, proxy=None):
         await pharos.handle_wallet()
         action_func = getattr(pharos, action_name)
         await action_func()
+    except KeyboardInterrupt:
+        print(Fore.LIGHTYELLOW_EX + 'Script has finished' + Style.RESET_ALL)
     except Exception as e:
         logger.error(wallet_address, f'An error occurred while handling account: {e}')
     finally:

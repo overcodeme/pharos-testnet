@@ -17,6 +17,7 @@ async def mint_badge(wallet: Account, w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider
             'from': wallet.address,
             'gas': random.randint(300000, 400000),
             'gasPrice': await w3.eth.gas_price,
+            'to': '',
             'nonce': await w3.eth.get_transaction_count(wallet.address),
             'value': w3.to_wei(1, 'ether')
         }
