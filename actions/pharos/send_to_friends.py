@@ -10,9 +10,9 @@ import aiohttp
 
 settings = load_yaml('settings.yaml')
 
-async def handle_send_to_friends_task(session: aiohttp.ClientSession, wallet, headers, w3: AsyncWeb3):
+async def handle_send_to_friends_task(session: aiohttp.ClientSession, wallet, headers, w3: AsyncWeb3, ssl):
     tx_hash = await transfer_phrs(wallet, w3)
-    if await verify_task(session, wallet.address, headers, '103', tx_hash): return True
+    if await verify_task(session, wallet.address, headers, '103', tx_hash, ssl): return True
     else: return False
 
 

@@ -14,10 +14,10 @@ def sign_message(wallet: Account, message):
     return f'0x{signature.signature.hex()}'
 
 
-async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, task_id, tx_hash):
+async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, task_id, tx_hash, ssl):
     url = f'https://api.pharosnetwork.xyz/task/verify?address={wallet_address}&task_id={task_id}&tx_hash={tx_hash}'
     try:
-        async with session.post(url=url, headers=headers) as response:
+        async with session.post(url=url, headers=headers, ssl=ssl) as response:
             data = await response.json()
             if data['data']['verified'] != True:
                 logger.error(wallet_address, f'Error while verifying task: {await response.text()}')
@@ -75,5 +75,9 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
             logger.success(wallet.address, f'Successfully approved {token['name']}')
         else:
             logger.error(wallet.address, f'Token {token['name']} approve error: {tx_receipt}')
+
+
+async def define_testnet_lvl(data):
+    pass
 
     

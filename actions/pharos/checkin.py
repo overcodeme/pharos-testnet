@@ -8,10 +8,10 @@ from utils.file_manager import load_yaml
 settings = load_yaml('./settings.yaml')
 SLEEP_DURATION = settings['SLEEP_DURATION']
 
-async def checkin(session: aiohttp.ClientSession, wallet_address, headers):
+async def checkin(session: aiohttp.ClientSession, wallet_address, headers, ssl):
     url = f'https://api.pharosnetwork.xyz/sign/in?address={wallet_address}'
 
-    async with session.post(url=url, headers=headers) as response:
+    async with session.post(url=url, headers=headers, ssl=ssl) as response:
         if response.status == 200:
             data = await response.text()
             if 'already signed in today' in data:

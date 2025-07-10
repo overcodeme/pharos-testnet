@@ -4,10 +4,10 @@ import aiohttp
 
 
 
-async def is_able_to_faucet(session: aiohttp.ClientSession, wallet_address, headers):
+async def is_able_to_faucet(session: aiohttp.ClientSession, wallet_address, headers, ssl):
     url = f'https://api.pharosnetwork.xyz/faucet/status?address={wallet_address}'
 
-    async with session.get(url=url, headers=headers) as response:
+    async with session.get(url=url, headers=headers, ssl=ssl) as response:
         if response.status == 200:
             data = await response.json()
             if data['data']['is_able_to_faucet'] == True:
@@ -18,11 +18,11 @@ async def is_able_to_faucet(session: aiohttp.ClientSession, wallet_address, head
             logger.error(wallet_address, f'Error while checking faucet eligibelity: {await response.text()}')
 
 
-async def fetch_native_faucet(session: aiohttp.ClientSession, wallet_address, is_twitter_connected, headers):
+async def fetch_native_faucet(session: aiohttp.ClientSession, wallet_address, is_twitter_connected, headers, ssl):
     if is_twitter_connected:
         url = f'https://api.pharosnetwork.xyz/faucet/daily?address={wallet_address}'
 
-        async with session.post(url=url, headers=headers) as response:
+        async with session.post(url=url, headers=headers, ssl=ssl) as response:
             if response.status == 200:
                 logger.success(wallet_address, f'Successfully claimed native faucet')
                 return True
@@ -31,16 +31,17 @@ async def fetch_native_faucet(session: aiohttp.ClientSession, wallet_address, is
 
     else:
         logger.warning(wallet_address, 'Twitter not connected')
+        return True
 
 
-async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, token):
+async def fetch_stable_faucet(session: aiohttp.ClientSession, wallet_address, token, ssl):
     url = 'https://testnet-router.zenithswap.xyz/api/v1/faucet'
     try:
         data = {
             'tokenAddress': token['contract_address'],
             'userAddress': wallet_address
         }
-        async with session.post(url=url, headers=zenith_headers, json=data) as response:
+        async with session.post(url=url, headers=zenith_headers, json=data, ssl=ssl) as response:
             data = await response.text()
             if 'system error' in data: raise Exception('Error while fetching stable faucet, retrying...')
             if response.status == 200: 
