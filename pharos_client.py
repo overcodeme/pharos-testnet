@@ -3,7 +3,7 @@ from web3 import AsyncWeb3
 from data.const import pharos_headers, stables_data, rpc
 from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
-from utils.utils import sign_message
+from utils.utils import sign_message, define_testnet_lvl
 from utils.decorators import handle_retries
 from actions.pharos.checkin import checkin
 from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
@@ -53,7 +53,7 @@ class PharosClient:
             self.headers['authorization'] = f'Bearer {token}'
             user_data = await self.get_user_data()
             if user_data['code'] == 0:
-                logger.info(self.wallet.address, f'Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
+                logger.info(self.wallet.address, f'Level: {Fore.YELLOW}{await define_testnet_lvl(user_data['data']['user_info']['TotalPoints'])}{Style.RESET_ALL} | Total points: {Fore.YELLOW}{user_data['data']['user_info']['TotalPoints']}{Style.RESET_ALL}')
         else:
             await self.login()
 

@@ -77,7 +77,10 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
             logger.error(wallet.address, f'Token {token['name']} approve error: {tx_receipt}')
 
 
-async def define_testnet_lvl(data):
-    pass
+async def define_testnet_lvl(points: int):
+    if points >= 6001: return 4
+    if points >= 3501: return 3
+    if points >= 1001: return 2
+    return 1
 
     
