@@ -3,9 +3,10 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from data.const import rpc, stables_data
 from utils.logger import logger
-from utils.abi import erc20token_abi
+from utils.abi import erc20token_abi, erc721_abi
 import aiohttp
 import random
+import json
 
 
 def sign_message(wallet: Account, message):
@@ -15,9 +16,21 @@ def sign_message(wallet: Account, message):
 
 
 async def verify_task(session: aiohttp.ClientSession, wallet_address, headers, task_id, tx_hash, ssl):
-    url = f'https://api.pharosnetwork.xyz/task/verify?address={wallet_address}&task_id={task_id}&tx_hash={tx_hash}'
+    url = 'https://api.pharosnetwork.xyz/task/verify'
+
+    data = {
+        'address': str(wallet_address),
+        'task_id': task_id,
+        'tx_hash': str(tx_hash)
+    }
+
+    json_data = json.dumps(data)
+
+    headers['content-length'] = str(len(json_data))
+    headers['content-type'] = 'application/json'
+
     try:
-        async with session.post(url=url, headers=headers, ssl=ssl) as response:
+        async with session.post(url=url, headers=headers, json=data, ssl=ssl) as response:
             data = await response.json()
             if data['data']['verified'] != True:
                 logger.error(wallet_address, f'Error while verifying task: {await response.text()}')
@@ -83,4 +96,11 @@ async def define_testnet_lvl(points: int):
     if points >= 1001: return 2
     return 1
 
+
+async def is_nft_minted(wallet: Account, nft_address):
+    w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+    contract = w3.eth.contract(w3.to_checksum_address(nft_address), abi=erc721_abi)
+
+    if await contract.functions.balanceOf(wallet.address).call() > 0:
+        return True
     

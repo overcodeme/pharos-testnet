@@ -3,16 +3,16 @@ from web3 import AsyncWeb3
 from data.const import pharos_headers, stables_data, rpc
 from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
-from utils.utils import sign_message, define_testnet_lvl
+from utils.utils import sign_message, define_testnet_lvl, is_nft_minted
 from utils.decorators import handle_retries
 from actions.pharos.checkin import checkin
 from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 from actions.pharos.send_to_friends import handle_send_to_friends_task
 from actions.zenith.zenith_swap import zenith_handle_swap
 from actions.zenith.zenith_liquidity import zenith_add_liquidity
-from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
+# from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
 from actions.mint_nft import gotchipus_mint
-# from actions.mint_badge import mint_badge
+from actions.mint_badge import mint_badge
 from colorama import Fore, Style
 from datetime import datetime, timezone
 import aiohttp
@@ -28,8 +28,8 @@ settings = load_yaml('settings.yaml')
 sessions = load_json('data/sessions.json')
 ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
-tasks_functions = {
-    'BUY_TOKENS': zentrafi_buy_random_token,
+onchain_tasks_functions = {
+    # 'BUY_TOKENS': zentrafi_buy_random_token,
     'SWAP': zenith_handle_swap,
     'LIQUIDITY': zenith_add_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
@@ -37,7 +37,7 @@ tasks_functions = {
 
 class PharosClient:
     def __init__(self, private_key, proxy=None):
-        self.w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc, request_kwargs={'proxies': {"http": proxy, "https": proxy}})) if proxy else AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
+        self.w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy if proxy else None)
         self.ssl = ssl.create_default_context(cafile=certifi.where())
@@ -45,9 +45,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        random_sleep = random.randint(20, 90)
-        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        await asyncio.sleep(random_sleep)
+        # random_sleep = random.randint(20, 90)
+        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        # await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -172,13 +172,13 @@ class PharosClient:
                         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
 
                         if task_name == 'SEND_TO_FRIENDS':
-                            task_res = await tasks_functions[task_name](self.session, self.wallet, self.headers, self.w3)
+                            task_res = await handle_send_to_friends_task(self.session, self.wallet, self.headers, self.w3, self.ssl)
                             if task_res: 
                                 task_counter += 1
                                 break
                             elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
                         else:
-                            task_res = await tasks_functions[task_name](self.wallet, self.w3)
+                            task_res = await onchain_tasks_functions[task_name](self.wallet, self.w3)
                             if task_res:
                                 task_counter += 1
                                 break
@@ -189,21 +189,22 @@ class PharosClient:
                     logger.info(self.wallet.address,  f'[{task_counter}/{task_amount}] | Sleeping for {random_sleep} sec before next task...')
                     await asyncio.sleep(random_sleep)
 
+
     @handle_retries(max_retries=ATTEMPTS)
     async def mint_gotchipus_nft(self):
         if await gotchipus_mint(self.wallet):
             return True
 
 
-    # @handle_retries(max_retries=ATTEMPTS)
-    # async def mint_testnet_badge(self):
-    #     res = await mint_badge(self.wallet)
-    #     if res: return
-    #     elif res == 'Not enough balance': return
-    #     else:
-    #         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-    #         logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
-    #         await asyncio.sleep(random_sleep)
+    @handle_retries(max_retries=ATTEMPTS)
+    async def mint_testnet_badge(self):
+        res = await mint_badge(self.wallet)
+        if res: return True
+        else:
+            random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
+            logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
+            await asyncio.sleep(random_sleep)
+
 
     @handle_retries(max_retries=ATTEMPTS)
     async def connect_socials(self):
