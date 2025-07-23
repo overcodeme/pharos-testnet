@@ -18,8 +18,6 @@ from datetime import datetime, timezone
 import aiohttp
 import asyncio
 import random
-import ssl
-import certifi
 
 
 discords = load_txt('data/discord_tokens.txt')
@@ -40,14 +38,13 @@ class PharosClient:
         self.w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy if proxy else None)
-        self.ssl = ssl.create_default_context(cafile=certifi.where())
         self.headers = pharos_headers
 
 
     async def handle_wallet(self):
-        # random_sleep = random.randint(20, 90)
-        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        # await asyncio.sleep(random_sleep)
+        random_sleep = random.randint(20, 90)
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -64,10 +61,9 @@ class PharosClient:
         url = f'https://api.pharosnetwork.xyz/user/login?address={self.wallet.address}&signature={sign_message(self.wallet, message)}&wallet=OKX+Wallet'
 
         try:
-            async with self.session.post(url=url, headers=self.headers, ssl=self.ssl) as response:
+            async with self.session.post(url=url, headers=self.headers) as response:
                 data = await response.json()
                 if data['code'] == 0:
-                    data = await response.json()
                     token = data['data']['jwt']
                     self.headers['authorization'] = f'Bearer {token}'
                     user_data = await self.get_user_data()
@@ -86,7 +82,7 @@ class PharosClient:
         url = f'https://api.pharosnetwork.xyz/user/profile?address={self.wallet.address}'
 
         try:
-            async with self.session.get(url=url, headers=self.headers, ssl=self.ssl) as response:
+            async with self.session.get(url=url, headers=self.headers) as response:
                 data = await response.json()
                 if data['msg'] == 'ok':
                     data = await response.json()
@@ -115,8 +111,8 @@ class PharosClient:
         await asyncio.sleep(random_sleep)
 
         try:
-            if await is_able_to_faucet(self.session, self.wallet.address, self.headers, ssl=self.ssl):
-                if await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers, self.ssl):
+            if await is_able_to_faucet(self.session, self.wallet.address, self.headers):
+                if await fetch_native_faucet(self.session, self.wallet.address, is_twitter_connected, self.headers):
                     results['native_faucet'] = 'ok'
                 else:
                     results['native_faucet'] = 'error'
@@ -131,7 +127,7 @@ class PharosClient:
         for stable in stables:
             for _ in range(ATTEMPTS):
                 try:
-                    if await fetch_stable_faucet(self.session, self.wallet.address, stable, self.ssl):
+                    if await fetch_stable_faucet(self.session, self.wallet.address, stable):
                         results['stable_faucet'] = 'ok'
                         break
                 except Exception as e:
@@ -150,7 +146,7 @@ class PharosClient:
         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
         logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before daily checkin...')
         await asyncio.sleep(random_sleep)
-        if await checkin(self.session, self.wallet.address, self.headers, self.ssl): return True
+        if await checkin(self.session, self.wallet.address, self.headers): return True
 
 
     async def run_onchain(self):
@@ -172,7 +168,7 @@ class PharosClient:
                         random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
 
                         if task_name == 'SEND_TO_FRIENDS':
-                            task_res = await handle_send_to_friends_task(self.session, self.wallet, self.headers, self.w3, self.ssl)
+                            task_res = await handle_send_to_friends_task(self.session, self.wallet, self.headers, self.w3)
                             if task_res: 
                                 task_counter += 1
                                 break
