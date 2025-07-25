@@ -91,6 +91,7 @@ async def approve_token(wallet: Account, amount, token: dict, spender):
 
 
 async def define_testnet_lvl(points: int):
+    if points >= 10001: return 5
     if points >= 6001: return 4
     if points >= 3501: return 3
     if points >= 1001: return 2

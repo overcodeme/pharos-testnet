@@ -6,13 +6,13 @@ from utils.utils import is_nft_minted
 import random
 
 
-async def mint_badge(wallet: Account, w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))):
+async def handle_badge_minting(wallet: Account, badge_address, w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))):
     try:
         if await w3.eth.get_balance(wallet.address) < w3.to_wei(1, 'ether'):
             logger.error(wallet.address, 'Not enough balance to mint badge')
             return 'Not enough balance'
         
-        if await is_nft_minted(wallet, '0x1Da9f40036beE3Fda37ddd9Bff624E1125d8991D'):
+        if await is_nft_minted(wallet, badge_address):
             logger.warning(wallet.address, "You've already minted testnet badge")
 
         tx = {
@@ -21,7 +21,7 @@ async def mint_badge(wallet: Account, w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider
             'from': wallet.address,
             'gas': random.randint(300000, 400000),
             'gasPrice': await w3.eth.gas_price,
-            'to': '0x1Da9f40036beE3Fda37ddd9Bff624E1125d8991D',
+            'to': badge_address,
             'nonce': await w3.eth.get_transaction_count(wallet.address),
             'value': w3.to_wei(1, 'ether')
         }

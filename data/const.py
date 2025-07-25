@@ -2,9 +2,13 @@ faucet_address = '0x11DE0e754f1Df7C7B0d559721b334809A9C0dfb7'
 router_address = '0x1a4de519154ae51200b0ad7c90f7fac75547888a'
 liq_address = '0xF8a1D4FF0f9b9Af7CE58E1fc1833688F3BFd6115'
 WPHRS_address = '0x76aaada469d23216be5f7c596fa25f282ff9b364'
-
-
 rpc = 'https://testnet.dplabs-internal.com'
+
+badges = {
+    'Pharos': '0x1Da9f40036beE3Fda37ddd9Bff624E1125d8991D',
+    'FaroSwap': '0x2a469A4073480596b9deB19f52aA89891CcFF5ce',
+    'Zentra': '0xe71188DF7be6321ffd5aaA6e52e6c96375E62793'
+}
 
 pharos_headers = {
     'accept': 'application/json, text/plain, */*',
@@ -64,7 +68,7 @@ menu_items = [
     {'name': 'Faucet', 'description': 'Launch native and stables faucet', 'func': 'fetch_faucet'},
     {'name': 'Daily check-in', 'description': 'Complete daily check-in', 'func': 'check_in'},
     {'name': 'On-chain tasks', 'description': 'Swap, add liquidity, send to another wallet', 'func': 'run_onchain'},
-    {'name': 'Mint badge', 'description': 'Mint pharos testnet badge', 'func': 'mint_testnet_badge'},
+    {'name': 'Mint Badge', 'description': 'Choose badge to mint by clicking', 'func': 'mint_badge'},
     {'name': 'Gotchipus NFT', 'description': 'Mint Gotchipus NFT', 'func': 'mint_gotchipus_nft'},
     {'name': 'Connect socials', 'description': 'Connect discord and twitter', 'func': 'connect_social'},
     {'name': 'Exit', 'description': 'Leave the script'}

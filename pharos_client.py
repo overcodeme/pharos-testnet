@@ -11,8 +11,8 @@ from actions.pharos.send_to_friends import handle_send_to_friends_task
 from actions.zenith.zenith_swap import zenith_handle_swap
 from actions.zenith.zenith_liquidity import zenith_add_liquidity
 # from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
-from actions.mint_nft import gotchipus_mint
-from actions.mint_badge import mint_badge
+from actions.mint_gotchipus_nft import gotchipus_mint
+from actions.mint_badge import handle_badge_minting
 from colorama import Fore, Style
 from datetime import datetime, timezone
 import aiohttp
@@ -42,9 +42,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        random_sleep = random.randint(20, 90)
-        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        await asyncio.sleep(random_sleep)
+        # random_sleep = random.randint(20, 90)
+        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        # await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -192,13 +192,12 @@ class PharosClient:
             return True
 
 
-    @handle_retries(max_retries=ATTEMPTS)
-    async def mint_testnet_badge(self):
-        res = await mint_badge(self.wallet)
+    async def mint_badge(self, badge_address):
+        res = await handle_badge_minting(self.wallet, badge_address)
         if res: return True
         else:
             random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
-            logger.error(self.wallet.address, f'Error while badge minting. Retrying in {random_sleep} sec...')
+            logger.error(self.wallet.address, f'Error while minting badge. Retrying in {random_sleep} sec...')
             await asyncio.sleep(random_sleep)
 
 

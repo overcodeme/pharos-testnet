@@ -17,13 +17,19 @@ proxies = load_txt('data/proxies.txt')
 
 random.shuffle(wallets)
 
-async def handle_account(private_key, action_name, proxy=None):
+async def handle_account(private_key, action_params: str | list, proxy=None):
     pharos = PharosClient(private_key, proxy)
     wallet_address = Account.from_key(private_key).address
+    
     try:
         await pharos.handle_wallet()
-        action_func = getattr(pharos, action_name)
-        await action_func()
+        if isinstance(action_params, str):
+            action_func = getattr(pharos, action_params)
+            await action_func()
+        else:
+            action_func = getattr(pharos, action_params[0])
+            await action_func(action_params[1])
+
     except Exception as e:
         logger.error(wallet_address, f'An error occurred while handling account: {e}')
     finally:
@@ -34,18 +40,17 @@ async def main():
     if not wallets:
         print(Fore.RED + 'No wallets found' + Style.RESET_ALL)
 
-    options = menu_items
-    chosen_action = options[curses.wrapper(menu)]['func']
+    chosen_action = curses.wrapper(menu)
     os.system('cls' if os.name == 'nt' else 'clear')
 
     tasks = []
 
     if proxies:
         for w, p in zip(wallets, proxies):
-            tasks.append(handle_account(private_key=w, proxy=p, action_name=chosen_action))
+            tasks.append(handle_account(private_key=w, proxy=p, action_params=chosen_action))
     else:
         for w in wallets:
-            tasks.append(handle_account(private_key=w, action_name=chosen_action))
+            tasks.append(handle_account(private_key=w, action_params=chosen_action))
 
     await asyncio.gather(*tasks)
 
