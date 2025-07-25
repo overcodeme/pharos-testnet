@@ -9,8 +9,7 @@ Additional features will be added gradually, run the `update.bat` file periodica
 - Fetching native and stable faucet 
 - Completing daily checkin
 - Completing onchain tasks (swap, send tokens, buy tokens, liquidity)
-- Mint Gotchipus NFT  
-- Mint testnet badge
+- Mint NFTs and badges
 
 ---
 
