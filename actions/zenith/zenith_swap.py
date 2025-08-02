@@ -2,7 +2,7 @@ from web3 import AsyncWeb3
 from eth_account import Account
 from utils.file_manager import load_yaml
 from utils.utils import approve_token, get_token_balance, get_tokens_with_balance
-from utils.abi import zenith_swap
+from utils.abi import zenithswap_abi
 from data.const import rpc, router_address, WPHRS_address, stables_data
 from utils.logger import logger
 import random
@@ -12,7 +12,7 @@ import time
 settings = load_yaml('settings.yaml')
 
 async def swap_from_native(wallet: Account, token, w3: AsyncWeb3):
-    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_swap)
+    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenithswap_abi)
     try:
         balance = int(await w3.eth.get_balance(wallet.address))
         amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][0], settings['TASKS']['SWAP']['SWAP_FROM_NATIVE'][1]) / 100 * balance)
@@ -66,7 +66,7 @@ async def swap_from_native(wallet: Account, token, w3: AsyncWeb3):
 
 
 async def swap_from_stable(wallet: Account, token1, token2, w3: AsyncWeb3):
-    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenith_swap)
+    contract = w3.eth.contract(address=w3.to_checksum_address(router_address), abi=zenithswap_abi)
     try:
         balance = await get_token_balance(wallet.address, token1)
         amount_in_wei = int(random.randint(settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][0], settings['TASKS']['SWAP']['SWAP_FROM_STABLE'][1]) / 100 * balance)

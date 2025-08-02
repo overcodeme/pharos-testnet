@@ -7,6 +7,7 @@ from utils.abi import erc20token_abi, erc721_abi
 import aiohttp
 import random
 import json
+import string
 
 
 def sign_message(wallet: Account, message):
@@ -105,3 +106,9 @@ async def is_nft_minted(wallet: Account, nft_address):
     if await contract.functions.balanceOf(wallet.address).call() > 0:
         return True
     
+
+def generate_random_username(platform: str) -> str:
+    prefix = '@' if platform in ['x', 'tiktok'] else ''
+    length = random.randint(5, 12)
+    chars = string.ascii_lowercase + string.digits + '_'
+    return prefix + ''.join(random.choice(chars) for _ in range(length))

@@ -20,3 +20,6 @@ TASKS:
     SEND_TO_FRIENDS:
         TASK_COUNT: [3, 7]
         AMOUNT: [1, 5]
+    SEND_TO_FRIENDS_VIA_PRIMUS:
+        TASK_COUNT: [2, 6]
+        AMOUNT: [1, 5]

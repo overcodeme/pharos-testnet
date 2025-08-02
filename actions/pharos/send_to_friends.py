@@ -16,7 +16,7 @@ async def handle_send_to_friends_task(session: aiohttp.ClientSession, wallet, he
     else: return False
 
 
-async def transfer_phrs(wallet, w3: AsyncWeb3):
+async def transfer_phrs(wallet: Account, w3: AsyncWeb3):
     balance = float(w3.from_wei(await w3.eth.get_balance(wallet.address), 'ether'))
     amount = (random.randint(settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][0], settings['TASKS']['SEND_TO_FRIENDS']['AMOUNT'][1]) / 100) * balance
     random_address = Account.create().address

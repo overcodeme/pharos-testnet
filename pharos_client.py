@@ -3,7 +3,7 @@ from web3 import AsyncWeb3
 from data.const import pharos_headers, stables_data, rpc
 from utils.logger import logger
 from utils.file_manager import load_yaml, load_txt, save_session, load_json
-from utils.utils import sign_message, define_testnet_lvl, is_nft_minted
+from utils.utils import sign_message, define_testnet_lvl, generate_random_username
 from utils.decorators import handle_retries
 from actions.pharos.checkin import checkin
 from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
@@ -13,6 +13,7 @@ from actions.zenith.zenith_liquidity import zenith_add_liquidity
 # from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
 from actions.mint_gotchipus_nft import gotchipus_mint
 from actions.mint_badge import handle_badge_minting
+from actions.primus_tip import send_tokens_via_primus
 from colorama import Fore, Style
 from datetime import datetime, timezone
 import aiohttp
@@ -31,6 +32,7 @@ onchain_tasks_functions = {
     'SWAP': zenith_handle_swap,
     'LIQUIDITY': zenith_add_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
+    'SEND_TO_FRIENDS_VIA_PRIMUS': send_tokens_via_primus
 }
 
 class PharosClient:
@@ -42,9 +44,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        # random_sleep = random.randint(20, 90)
-        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        # await asyncio.sleep(random_sleep)
+        random_sleep = random.randint(20, 90)
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -199,6 +201,14 @@ class PharosClient:
             random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
             logger.error(self.wallet.address, f'Error while minting badge. Retrying in {random_sleep} sec...')
             await asyncio.sleep(random_sleep)
+
+
+    @handle_retries(max_retries=ATTEMPTS)
+    async def send_tokens_via_social_media(self):
+        platform = random.choice('x', 'tiktok', 'google')
+        username = await generate_random_username(platform)
+        if await send_tokens_via_primus(self.wallet, self.w3, platform, username):
+            return True
 
 
     @handle_retries(max_retries=ATTEMPTS)
