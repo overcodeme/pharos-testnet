@@ -44,9 +44,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        random_sleep = random.randint(20, 90)
-        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        await asyncio.sleep(random_sleep)
+        # random_sleep = random.randint(20, 90)
+        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        # await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
@@ -175,6 +175,12 @@ class PharosClient:
                                 task_counter += 1
                                 break
                             elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
+                        elif task_name == 'SEND_TO_FRIENDS_VIA_PRIMUS':
+                                platform = random.choice(['x', 'tiktok', 'google'])
+                                username = generate_random_username(platform)
+                                if await send_tokens_via_primus(self.wallet, self.w3, platform, username):
+                                    return True
+
                         else:
                             task_res = await onchain_tasks_functions[task_name](self.wallet, self.w3)
                             if task_res:
@@ -201,14 +207,6 @@ class PharosClient:
             random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
             logger.error(self.wallet.address, f'Error while minting badge. Retrying in {random_sleep} sec...')
             await asyncio.sleep(random_sleep)
-
-
-    @handle_retries(max_retries=ATTEMPTS)
-    async def send_tokens_via_social_media(self):
-        platform = random.choice('x', 'tiktok', 'google')
-        username = await generate_random_username(platform)
-        if await send_tokens_via_primus(self.wallet, self.w3, platform, username):
-            return True
 
 
     @handle_retries(max_retries=ATTEMPTS)
