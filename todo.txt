@@ -1,5 +1,4 @@
 statistics displaying
 faroswap (swap + liq)
-send tokens via social media acc
 staking (autostaking.pro)
 pharos domain *

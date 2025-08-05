@@ -10,6 +10,12 @@ import json
 import string
 
 
+tokens = {
+    *stables_data,
+    {'name': 'WETH', 'contract_address': '0x4E28826d32F1C398DED160DC16Ac6873357d048f', 'decimals': 18},
+    {'name': 'WBTC', 'contract_address': '0x8275c526d1bCEc59a31d673929d3cE8d108fF5c7', 'decimals': 18}
+}
+
 def sign_message(wallet: Account, message):
     encoded_message = encode_defunct(text=message)
     signature = wallet.sign_message(encoded_message)
@@ -50,7 +56,6 @@ async def get_token_balance(wallet_address, token: dict):
 
 
 async def get_tokens_with_balance(wallet_address) -> list:
-    tokens = [*stables_data]
     random.shuffle(tokens)
     result = []
 

@@ -3,12 +3,13 @@ router_address = '0x1a4de519154ae51200b0ad7c90f7fac75547888a'
 liq_address = '0xF8a1D4FF0f9b9Af7CE58E1fc1833688F3BFd6115'
 faroswap_address = '0x3541423f25a1ca5c98fdbcf478405d3f0aad1164'
 WPHRS_address = '0x76aaada469d23216be5f7c596fa25f282ff9b364'
-rpc = 'https://testnet.dplabs-internal.com'
+rpc = 'https://api.zan.top/node/v1/pharos/testnet/54b49326c9f44b6e8730dc5dd4348421'
 
 badges = {
     'Pharos': '0x1Da9f40036beE3Fda37ddd9Bff624E1125d8991D',
     'FaroSwap': '0x2a469A4073480596b9deB19f52aA89891CcFF5ce',
-    'Zentra': '0xe71188DF7be6321ffd5aaA6e52e6c96375E62793'
+    'Zentra': '0xe71188DF7be6321ffd5aaA6e52e6c96375E62793',
+    'Spout': '0x96381ed3FCFB385CBAcfe6908159F0905b19767a'
 }
 
 pharos_headers = {
@@ -43,6 +44,16 @@ zenith_headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
 }
 
+faros_headers  = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Origin": "https://faroswap.xyz",
+    "Referer": "https://faroswap.xyz/",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+}
 
 zentrafi_headers = {
     'accept': '*/*',

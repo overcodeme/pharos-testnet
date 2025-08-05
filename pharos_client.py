@@ -44,9 +44,9 @@ class PharosClient:
 
 
     async def handle_wallet(self):
-        # random_sleep = random.randint(20, 90)
-        # logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
-        # await asyncio.sleep(random_sleep)
+        random_sleep = random.randint(20, 90)
+        logger.info(self.wallet.address, f'Sleeping for {random_sleep} sec before starting...')
+        await asyncio.sleep(random_sleep)
         token = sessions.get(self.wallet.address)
 
         if token:
