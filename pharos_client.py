@@ -10,6 +10,7 @@ from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_a
 from actions.pharos.send_to_friends import handle_send_to_friends_task
 from actions.zenith.zenith_swap import zenith_handle_swap
 from actions.zenith.zenith_liquidity import zenith_add_liquidity
+from actions.faroswap import perform_faros_swap
 # from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
 from actions.mint_gotchipus_nft import gotchipus_mint
 from actions.mint_badge import handle_badge_minting
@@ -41,7 +42,6 @@ class PharosClient:
         self.wallet = Account.from_key(private_key)
         self.session = aiohttp.ClientSession(proxy=proxy if proxy else None)
         self.headers = pharos_headers
-
 
     async def handle_wallet(self):
         random_sleep = random.randint(20, 90)

@@ -70,7 +70,6 @@ zentrafi_headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
 }
 
-
 stables_data = [
     {'name': 'USDC', 'contract_address': '0x72df0bcd7276f2dfbac900d1ce63c272c4bccced', 'decimals': 6},
     {'name': 'USDT', 'contract_address': '0xd4071393f8716661958f766df660033b3d35fd29', 'decimals': 6}

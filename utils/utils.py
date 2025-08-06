@@ -10,11 +10,11 @@ import json
 import string
 
 
-tokens = {
+tokens = [
     *stables_data,
     {'name': 'WETH', 'contract_address': '0x4E28826d32F1C398DED160DC16Ac6873357d048f', 'decimals': 18},
     {'name': 'WBTC', 'contract_address': '0x8275c526d1bCEc59a31d673929d3cE8d108fF5c7', 'decimals': 18}
-}
+]
 
 def sign_message(wallet: Account, message):
     encoded_message = encode_defunct(text=message)
@@ -117,3 +117,4 @@ def generate_random_username(platform: str) -> str:
     length = random.randint(5, 12)
     chars = string.ascii_lowercase + string.digits + '_'
     return prefix + ''.join(random.choice(chars) for _ in range(length))
+
