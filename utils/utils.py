@@ -70,7 +70,7 @@ async def get_tokens_with_balance(wallet_address) -> list:
 async def approve_token(wallet: Account, amount, token: dict, spender):
     w3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpc))
     contract = w3.eth.contract(address=w3.to_checksum_address(token['contract_address']), abi=erc20token_abi)
-    allowance_amount = (await contract.functions.allowance(wallet.address, spender).call()) / (10 ** token['decimals'])
+    allowance_amount = (await contract.functions.allowance(wallet.address, w3.to_checksum_address(spender)).call()) / (10 ** token['decimals'])
 
     if allowance_amount < amount:
         estimate_gas = await contract.functions.approve(spender, 1000000000000).estimate_gas({

@@ -5,6 +5,7 @@ from utils.abi import zenith_liquidity
 from data.const import rpc, stables_data, liq_address, WPHRS_address
 from utils.utils import get_token_balance
 from utils.logger import logger
+from colorama import Fore, Style
 import time
 import random
 
@@ -19,7 +20,7 @@ async def zenith_add_liquidity(wallet: Account, w3=AsyncWeb3(AsyncWeb3.AsyncHTTP
         balance = int(await w3.eth.get_balance(wallet.address))
         amount_in_wei = int(random.randint(settings['TASKS']['LIQUIDITY']['AMOUNT'][0], settings['TASKS']['LIQUIDITY']['AMOUNT'][1]) / 100 * balance)
         amount1 = int(random.randint(settings['TASKS']['LIQUIDITY']['AMOUNT'][0], settings['TASKS']['LIQUIDITY']['AMOUNT'][1]) / 100 * token1_balance)
-        logger.info(wallet.address, f'Trying add liquidity PHRS/{token1['name']}')
+        logger.info(wallet.address, f'{Fore.YELLOW}[FaroSwap]{Style.RESET_ALL} Trying add liquidity PHRS/{token1['name']}')
         deadline = int(time.time() + 1000)
 
         mint_data = contract.encode_abi(

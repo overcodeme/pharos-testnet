@@ -3,7 +3,6 @@ import curses
 from eth_account import Account
 from utils.file_manager import load_yaml, load_txt
 from utils.logger import logger
-from data.const import menu_items
 from pharos_client import PharosClient
 from utils.menu import menu
 from colorama import Fore, Style

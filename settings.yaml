@@ -10,16 +10,22 @@ TASKS:
     # BUY_TOKENS:
     #     TASK_COUNT: [2, 4]
     #     AMOUNT: [1, 5]
-    SWAP:
-        TASK_COUNT: [2, 5]
-        SWAP_FROM_NATIVE: [1, 10]
-        SWAP_FROM_STABLE: [10, 30]
-    LIQUIDITY:
+    # ZENITH_SWAP:
+    #     TASK_COUNT: [2, 4]
+    #     SWAP_FROM_NATIVE: [1, 2]
+    #     SWAP_FROM_STABLE: [2, 5]
+    # FAROS_SWAP:
+    #     TASK_COUNT: [2, 4]
+    #     AMOUNT: [1, 5]
+    # ZENITH_LIQUIDITY:
+    #     TASK_COUNT: [2, 5]
+    #     AMOUNT: [1, 5] 
+    FAROS_LIQUIDITY:
         TASK_COUNT: [2, 5]
         AMOUNT: [1, 5] 
-    SEND_TO_FRIENDS:
-        TASK_COUNT: [3, 7]
-        AMOUNT: [1, 5]
-    SEND_TO_FRIENDS_VIA_PRIMUS:
-        TASK_COUNT: [2, 6]
-        AMOUNT: [1, 5]
+    # SEND_TO_FRIENDS:
+    #     TASK_COUNT: [3, 7]
+    #     AMOUNT: [1, 5]
+    # SEND_TO_FRIENDS_VIA_PRIMUS:
+    #     TASK_COUNT: [2, 6]
+    #     AMOUNT: [1, 5]

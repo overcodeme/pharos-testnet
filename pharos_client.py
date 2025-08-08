@@ -8,9 +8,9 @@ from utils.decorators import handle_retries
 from actions.pharos.checkin import checkin
 from actions.pharos.faucet import fetch_native_faucet, fetch_stable_faucet, is_able_to_faucet
 from actions.pharos.send_to_friends import handle_send_to_friends_task
-from actions.zenith.zenith_swap import zenith_handle_swap
-from actions.zenith.zenith_liquidity import zenith_add_liquidity
-from actions.faroswap import perform_faros_swap
+from actions.zenith import zenith_handle_swap
+from actions.zenith import zenith_add_liquidity
+from actions.faroswap import perform_faros_swap, perform_faros_liquidity
 # from actions.zentrafi.zentrafi_buy_token import zentrafi_buy_random_token
 from actions.mint_gotchipus_nft import gotchipus_mint
 from actions.mint_badge import handle_badge_minting
@@ -30,8 +30,10 @@ ATTEMPTS, SLEEP_DURATION = settings['ATTEMPTS'], settings['SLEEP_DURATION']
 tasks = settings['TASKS']
 onchain_tasks_functions = {
     # 'BUY_TOKENS': zentrafi_buy_random_token,
-    'SWAP': zenith_handle_swap,
-    'LIQUIDITY': zenith_add_liquidity,
+    'ZENITH_SWAP': zenith_handle_swap,
+    'FAROS_SWAP': perform_faros_swap,
+    'ZENITH_LIQUIDITY': zenith_add_liquidity,
+    'FAROS_LIQUIDITY': perform_faros_liquidity,
     'SEND_TO_FRIENDS': handle_send_to_friends_task,
     'SEND_TO_FRIENDS_VIA_PRIMUS': send_tokens_via_primus
 }
@@ -176,11 +178,13 @@ class PharosClient:
                                 break
                             elif not task_res and retry == ATTEMPTS - 1: task_counter += 1
                         elif task_name == 'SEND_TO_FRIENDS_VIA_PRIMUS':
-                                platform = random.choice(['x', 'tiktok', 'google'])
-                                username = generate_random_username(platform)
-                                if await send_tokens_via_primus(self.wallet, self.w3, platform, username):
-                                    return True
-
+                            platform = random.choice(['x', 'tiktok', 'google'])
+                            username = generate_random_username(platform)
+                            if await send_tokens_via_primus(self.wallet, self.w3, platform, username):
+                                return True
+                        elif task_name == 'FAROS_SWAP':
+                            if await perform_faros_swap(self.session, self.wallet, self.w3):
+                                return True
                         else:
                             task_res = await onchain_tasks_functions[task_name](self.wallet, self.w3)
                             if task_res:
@@ -203,6 +207,10 @@ class PharosClient:
     async def mint_badge(self, badge_address):
         res = await handle_badge_minting(self.wallet, badge_address)
         if res: return True
+        elif res == 'Already minted': 
+            logger.warning(self.wallet.address, "You've already minted this badge")
+        elif res == 'Not enough balance':
+            logger.error(self.wallet.address, "Not enough balance to mint badge")
         else:
             random_sleep = random.randint(SLEEP_DURATION[0], SLEEP_DURATION[1])
             logger.error(self.wallet.address, f'Error while minting badge. Retrying in {random_sleep} sec...')
